@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Defyland/bankport-go-gin-partner-api/docs/events/api.rate_limit_exceeded.v1.json",
+  "title": "api.rate_limit_exceeded v1",
+  "type": "object",
+  "required": ["event_id", "event_type", "schema_version", "occurred_at", "producer", "partner_id", "developer_app_id", "correlation_id", "payload"],
+  "properties": {
+    "event_id": { "type": "string" },
+    "event_type": { "type": "string", "const": "api.rate_limit_exceeded" },
+    "schema_version": { "type": "integer", "const": 1 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "producer": { "type": "string", "const": "bankport" },
+    "partner_id": { "type": "string" },
+    "developer_app_id": { "type": "string" },
+    "correlation_id": { "type": "string" },
+    "payload": { "type": "object" }
+  },
+  "additionalProperties": false
+}
