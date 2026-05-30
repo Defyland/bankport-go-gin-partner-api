@@ -4,9 +4,13 @@ BankPort will eventually run an API process plus optional worker processes for w
 
 ## Current posture
 
-- Phase 0 documents the external partner contract and middleware-oriented architecture.
-- PostgreSQL and Redis are planned core dependencies.
-- OpenAPI, health, readiness, metrics, traces, and k6 coverage are expected before the first runtime slice is considered complete.
+- Gin API runtime is implemented with health, readiness, metrics, tracing
+  middleware, structured logs, auth, scopes, rate limits, idempotency, events,
+  webhooks, and audit logs.
+- Dockerfile and Docker Compose are present for API, Prometheus, and Grafana.
+- OpenAPI and k6 benchmark scripts are present.
+- PostgreSQL and Redis remain planned production dependencies, with schema and
+  rationale documented before adapter implementation.
 
 ## Deferred platform work
 

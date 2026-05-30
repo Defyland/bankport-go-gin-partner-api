@@ -1,0 +1,796 @@
+openapi: 3.1.0
+info:
+  title: BankPort Partner API
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+  summary: Scoped financial partner API for sandbox banking integrations.
+  description: >
+    BankPort exposes versioned partner APIs for account reads, Pix transfers,
+    payouts, refunds, webhook registration, audit logs, and sandbox scenarios.
+    The public contract uses API-key authentication, scope checks, rate-limit
+    headers, idempotency keys for financial writes, and standardized errors.
+servers:
+  - url: https://partner-api.bankport.dev
+    description: Production-style endpoint used for contract examples
+security:
+  - bearerAuth: []
+tags:
+  - name: Health
+    description: Process health, readiness, and metrics endpoints.
+  - name: Accounts
+    description: Partner-owned account reads.
+  - name: Financial Writes
+    description: Idempotent Pix, payout, and refund commands.
+  - name: Webhooks
+    description: Webhook endpoint registration and delivery contract.
+  - name: Audit
+    description: Partner-visible audit evidence.
+  - name: Sandbox
+    description: Deterministic scenarios for partner integration tests.
+paths:
+  /health/live:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Liveness check
+      security: []
+      responses:
+        "200":
+          description: API process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      summary: Readiness check
+      security: []
+      responses:
+        "200":
+          description: API dependencies are ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          $ref: "#/components/responses/StandardError"
+  /metrics:
+    get:
+      tags: [Health]
+      operationId: getPrometheusMetrics
+      summary: Prometheus metrics
+      security: []
+      responses:
+        "200":
+          description: Prometheus text exposition.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /v1/accounts/{account_id}/balance:
+    get:
+      tags: [Accounts]
+      operationId: getAccountBalance
+      summary: Get an account balance
+      description: Requires `accounts:read`. Foreign partner accounts return 404 to avoid BOLA leakage.
+      parameters:
+        - $ref: "#/components/parameters/AccountID"
+      responses:
+        "200":
+          description: Account balance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountResponse"
+              examples:
+                success:
+                  value:
+                    data:
+                      account_id: acct_sandbox_001
+                      partner_id: partner_sandbox_bank
+                      currency: BRL
+                      available_balance_cents: 2500000
+                      pending_balance_cents: 150000
+                      updated_at: "2026-05-30T12:00:00Z"
+                    request_id: req_123
+                    correlation_id: corr_123
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/StandardError"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/accounts/{account_id}/statements:
+    get:
+      tags: [Accounts]
+      operationId: listAccountStatements
+      summary: List account statement entries
+      description: Requires `accounts:read`.
+      parameters:
+        - $ref: "#/components/parameters/AccountID"
+      responses:
+        "200":
+          description: Statement entries ordered by the sandbox seed data and subsequent commands.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatementEntriesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/StandardError"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/pix/transfers:
+    post:
+      tags: [Financial Writes]
+      operationId: createPixTransfer
+      summary: Create a Pix transfer
+      description: Requires `pix:write` and `Idempotency-Key`.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PixTransferRequest"
+            examples:
+              success:
+                value:
+                  source_account_id: acct_sandbox_001
+                  amount_cents: 1500
+                  currency: BRL
+                  pix_key: merchant@example.com
+                  description: Marketplace settlement
+      responses:
+        "202":
+          description: Pix transfer accepted for processing.
+          headers:
+            Idempotency-Replayed:
+              description: Present with value `true` when the response was replayed from cache.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PixTransferResponse"
+        "400":
+          $ref: "#/components/responses/StandardError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/IdempotencyConflict"
+        "422":
+          $ref: "#/components/responses/StandardError"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/payouts:
+    post:
+      tags: [Financial Writes]
+      operationId: createPayout
+      summary: Create a payout
+      description: Requires `payouts:write` and `Idempotency-Key`.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayoutRequest"
+      responses:
+        "202":
+          description: Payout queued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutResponse"
+        "400":
+          $ref: "#/components/responses/StandardError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/IdempotencyConflict"
+        "422":
+          $ref: "#/components/responses/StandardError"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/refunds:
+    post:
+      tags: [Financial Writes]
+      operationId: createRefund
+      summary: Create a refund
+      description: Requires `refunds:write` and `Idempotency-Key`.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundRequest"
+      responses:
+        "202":
+          description: Refund accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundResponse"
+        "400":
+          $ref: "#/components/responses/StandardError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/IdempotencyConflict"
+        "422":
+          $ref: "#/components/responses/StandardError"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/webhooks/endpoints:
+    post:
+      tags: [Webhooks]
+      operationId: registerWebhookEndpoint
+      summary: Register a webhook endpoint
+      description: Requires `webhooks:write`. URLs must use HTTPS except localhost sandbox receivers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookEndpointRequest"
+            examples:
+              success:
+                value:
+                  url: https://partner.example.com/webhooks
+                  event_types: ["pix.transfer.created.v1"]
+                  description: Primary partner receiver
+      responses:
+        "201":
+          description: Webhook endpoint registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpointResponse"
+        "400":
+          $ref: "#/components/responses/StandardError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/audit-logs:
+    get:
+      tags: [Audit]
+      operationId: listAuditLogs
+      summary: List partner audit entries
+      description: Requires `audit:read`.
+      responses:
+        "200":
+          description: Audit entries for the authenticated partner.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEntriesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/sandbox/scenarios:
+    get:
+      tags: [Sandbox]
+      operationId: listSandboxScenarios
+      summary: List deterministic sandbox scenarios
+      description: Requires `sandbox:read`.
+      responses:
+        "200":
+          description: Supported sandbox scenarios.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SandboxScenariosResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API key
+      description: Sandbox API keys are passed as Bearer tokens. `X-API-Key` is also accepted by the implementation.
+  parameters:
+    AccountID:
+      name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: acct_sandbox_001
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique key per financial write command and request body. Sandbox records expire after the configured `IDEMPOTENCY_TTL`, defaulting to 24 hours.
+      schema:
+        type: string
+        minLength: 8
+      example: idem_20260530_001
+  responses:
+    StandardError:
+      description: Standardized error envelope.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            missing:
+              value:
+                error:
+                  code: authentication_required
+                  message: Provide a valid Bearer token or X-API-Key.
+                request_id: req_123
+                correlation_id: corr_123
+    Forbidden:
+      description: API key does not include the required scope.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            insufficient_scope:
+              value:
+                error:
+                  code: insufficient_scope
+                  message: The API key does not include the required scope.
+                  details:
+                    required_scope: pix:write
+                request_id: req_123
+                correlation_id: corr_123
+    RateLimited:
+      description: Partner exceeded the route rate limit.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until the fixed window resets.
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            rate_limited:
+              value:
+                error:
+                  code: rate_limit_exceeded
+                  message: The partner rate limit was exceeded.
+                  details:
+                    limit_per_minute: 120
+                    retry_after: 34
+                request_id: req_123
+                correlation_id: corr_123
+    IdempotencyConflict:
+      description: Idempotency key reused with a different request body.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            conflict:
+              value:
+                error:
+                  code: idempotency_conflict
+                  message: The Idempotency-Key was already used with a different request body.
+                request_id: req_123
+                correlation_id: corr_123
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service, request_id, correlation_id]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: bankport_partner_api
+        request_id:
+          type: string
+        correlation_id:
+          type: string
+    ReadinessResponse:
+      type: object
+      required: [status, checks, request_id, correlation_id]
+      properties:
+        status:
+          type: string
+          example: ready
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+        request_id:
+          type: string
+        correlation_id:
+          type: string
+    ErrorEnvelope:
+      type: object
+      required: [error, request_id, correlation_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              examples: [validation_failed, insufficient_scope, rate_limit_exceeded]
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+        request_id:
+          type: string
+        correlation_id:
+          type: string
+    Account:
+      type: object
+      required: [account_id, partner_id, currency, available_balance_cents, pending_balance_cents, updated_at]
+      properties:
+        account_id:
+          type: string
+        partner_id:
+          type: string
+        currency:
+          type: string
+          const: BRL
+        available_balance_cents:
+          type: integer
+          format: int64
+        pending_balance_cents:
+          type: integer
+          format: int64
+        updated_at:
+          type: string
+          format: date-time
+    AccountResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/Account"
+    StatementEntry:
+      type: object
+      required: [id, account_id, type, description, amount_cents, currency, occurred_at]
+      properties:
+        id:
+          type: string
+        account_id:
+          type: string
+        type:
+          type: string
+          enum: [credit, debit]
+        description:
+          type: string
+        amount_cents:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+    StatementEntriesResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/StatementEntry"
+    PixTransferRequest:
+      type: object
+      required: [source_account_id, amount_cents, currency, pix_key]
+      properties:
+        source_account_id:
+          type: string
+        amount_cents:
+          type: integer
+          format: int64
+          minimum: 1
+        currency:
+          type: string
+          const: BRL
+        pix_key:
+          type: string
+        description:
+          type: string
+    PixTransfer:
+      type: object
+      required: [id, partner_id, source_account_id, amount_cents, currency, pix_key, status, created_at]
+      properties:
+        id:
+          type: string
+        partner_id:
+          type: string
+        source_account_id:
+          type: string
+        amount_cents:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        pix_key:
+          type: string
+        status:
+          type: string
+          enum: [accepted]
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    PixTransferResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [transfer, queued_webhook_deliveries]
+              properties:
+                transfer:
+                  $ref: "#/components/schemas/PixTransfer"
+                queued_webhook_deliveries:
+                  type: integer
+    PayoutRequest:
+      type: object
+      required: [account_id, amount_cents, currency, bank_code, branch, account_number, document]
+      properties:
+        account_id:
+          type: string
+        amount_cents:
+          type: integer
+          format: int64
+          minimum: 1
+        currency:
+          type: string
+          const: BRL
+        bank_code:
+          type: string
+        branch:
+          type: string
+        account_number:
+          type: string
+        document:
+          type: string
+        description:
+          type: string
+    Payout:
+      type: object
+      required: [id, partner_id, account_id, amount_cents, currency, status, bank_code, branch, account_number, created_at]
+      properties:
+        id:
+          type: string
+        partner_id:
+          type: string
+        account_id:
+          type: string
+        amount_cents:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [queued]
+        bank_code:
+          type: string
+        branch:
+          type: string
+        account_number:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    PayoutResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                payout:
+                  $ref: "#/components/schemas/Payout"
+                queued_webhook_deliveries:
+                  type: integer
+    RefundRequest:
+      type: object
+      required: [original_transaction_id, account_id, amount_cents, currency, reason]
+      properties:
+        original_transaction_id:
+          type: string
+        account_id:
+          type: string
+        amount_cents:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          const: BRL
+        reason:
+          type: string
+    Refund:
+      type: object
+      required: [id, partner_id, account_id, original_transaction_id, amount_cents, currency, status, reason, created_at]
+      properties:
+        id:
+          type: string
+        partner_id:
+          type: string
+        account_id:
+          type: string
+        original_transaction_id:
+          type: string
+        amount_cents:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [accepted]
+        reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    RefundResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                refund:
+                  $ref: "#/components/schemas/Refund"
+                queued_webhook_deliveries:
+                  type: integer
+    WebhookEndpointRequest:
+      type: object
+      required: [url, event_types]
+      properties:
+        url:
+          type: string
+          format: uri
+        event_types:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        description:
+          type: string
+    WebhookEndpoint:
+      type: object
+      required: [id, partner_id, url, event_types, secret_id, created_at]
+      properties:
+        id:
+          type: string
+        partner_id:
+          type: string
+        url:
+          type: string
+        event_types:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+        secret_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    WebhookEndpointResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/WebhookEndpoint"
+    AuditEntry:
+      type: object
+      required: [id, partner_id, request_id, correlation_id, action, resource_id, status, occurred_at]
+      properties:
+        id:
+          type: string
+        partner_id:
+          type: string
+        request_id:
+          type: string
+        correlation_id:
+          type: string
+        action:
+          type: string
+        resource_id:
+          type: string
+        status:
+          type: string
+        reason:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+    AuditEntriesResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/AuditEntry"
+    SandboxScenario:
+      type: object
+      required: [id, name, description]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+    SandboxScenariosResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/SandboxScenario"
+    SuccessEnvelope:
+      type: object
+      required: [data, request_id, correlation_id]
+      properties:
+        data: {}
+        request_id:
+          type: string
+        correlation_id:
+          type: string

@@ -21,6 +21,10 @@ This repository follows the initiative-wide standards below.
 - webhook delivery with retry, replay, signatures, and operator visibility
 - fake internal adapters that keep partner APIs decoupled from financial source systems
 
-## Phase 0 boundary
+## Current implementation boundary
 
-This repository intentionally stops before scaffolding Gin handlers, Redis integration, worker processes, or internal adapters. The goal of this phase is only to lock scope and standards.
+This repository now includes the first runnable Gin API slice. It implements
+middleware controls, sandbox adapters, events, webhooks, audit logs,
+observability, tests, OpenAPI, Docker, CI, and benchmark scripts. PostgreSQL,
+Redis, real financial adapters, and durable webhook workers are intentionally
+deferred until the contract and invariants are validated.

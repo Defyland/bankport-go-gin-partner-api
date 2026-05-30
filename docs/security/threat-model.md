@@ -31,3 +31,18 @@
 - mTLS and full OAuth provider semantics are deferred; the first slice focuses on partner auth and policy enforcement.
 - Service mesh is deferred; middleware, idempotency, and observability are the current edge controls.
 - Real downstream integrations remain fake adapters until the public contract is stable.
+
+## Trust boundary decisions
+
+- Public traffic terminates at the Gin API process.
+- Auth, scope, rate limit, and idempotency middleware run before domain mutation.
+- The repository hides cross-tenant resources with 404 responses.
+- Webhook receivers are treated as untrusted external systems.
+- Correlation IDs are partner-controlled metadata and are never used for authorization.
+
+## Monitoring controls
+
+- `bankport_partner_api_rate_limit_exceeded_total`
+- `bankport_partner_api_idempotency_conflicts_total`
+- `bankport_partner_api_financial_commands_total`
+- structured log fields: `request_id`, `correlation_id`, `partner_id`, `developer_app_id`, route, status

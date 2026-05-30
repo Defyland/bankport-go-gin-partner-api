@@ -6,10 +6,10 @@
   "required": ["event_id", "event_type", "schema_version", "occurred_at", "producer", "partner_id", "developer_app_id", "correlation_id", "payload"],
   "properties": {
     "event_id": { "type": "string" },
-    "event_type": { "type": "string", "const": "payout.created" },
-    "schema_version": { "type": "integer", "const": 1 },
+    "event_type": { "type": "string", "const": "payout.created.v1" },
+    "schema_version": { "type": "string", "const": "1.0.0" },
     "occurred_at": { "type": "string", "format": "date-time" },
-    "producer": { "type": "string", "const": "bankport" },
+    "producer": { "type": "string", "const": "bankport-partner-api" },
     "partner_id": { "type": "string" },
     "developer_app_id": { "type": "string" },
     "correlation_id": { "type": "string" },
