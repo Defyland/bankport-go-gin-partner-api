@@ -1,0 +1,263 @@
+package domain
+
+import (
+	"errors"
+	"fmt"
+	"net/url"
+	"strings"
+	"time"
+)
+
+const (
+	ScopeAccountsRead  = "accounts:read"
+	ScopePixWrite      = "pix:write"
+	ScopePayoutsWrite  = "payouts:write"
+	ScopeRefundsWrite  = "refunds:write"
+	ScopeWebhooksWrite = "webhooks:write"
+	ScopeAuditRead     = "audit:read"
+	ScopeSandboxRead   = "sandbox:read"
+)
+
+var (
+	ErrAccountNotFound       = errors.New("account not found")
+	ErrInsufficientFunds     = errors.New("insufficient available balance")
+	ErrValidation            = errors.New("validation failed")
+	ErrOriginalTxnNotFound   = errors.New("original transaction not found")
+	ErrRefundExceedsOriginal = errors.New("refund exceeds original transaction amount")
+)
+
+type Partner struct {
+	ID                 string
+	Name               string
+	DeveloperAppID     string
+	APIKeyHash         string
+	Scopes             map[string]bool
+	RateLimitPerMinute int
+}
+
+func (p Partner) HasScope(scope string) bool {
+	return p.Scopes[scope]
+}
+
+type Account struct {
+	ID                  string    `json:"account_id"`
+	PartnerID           string    `json:"partner_id"`
+	Currency            string    `json:"currency"`
+	AvailableBalanceCts int64     `json:"available_balance_cents"`
+	PendingBalanceCts   int64     `json:"pending_balance_cents"`
+	UpdatedAt           time.Time `json:"updated_at"`
+}
+
+type StatementEntry struct {
+	ID          string    `json:"id"`
+	AccountID   string    `json:"account_id"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
+	AmountCents int64     `json:"amount_cents"`
+	Currency    string    `json:"currency"`
+	OccurredAt  time.Time `json:"occurred_at"`
+}
+
+type PixTransferRequest struct {
+	SourceAccountID string `json:"source_account_id"`
+	AmountCents     int64  `json:"amount_cents"`
+	Currency        string `json:"currency"`
+	PixKey          string `json:"pix_key"`
+	Description     string `json:"description"`
+}
+
+func (r PixTransferRequest) Validate() error {
+	if strings.TrimSpace(r.SourceAccountID) == "" {
+		return fieldError("source_account_id", "is required")
+	}
+	if r.AmountCents <= 0 {
+		return fieldError("amount_cents", "must be greater than zero")
+	}
+	if normalizeCurrency(r.Currency) != "BRL" {
+		return fieldError("currency", "must be BRL")
+	}
+	if strings.TrimSpace(r.PixKey) == "" {
+		return fieldError("pix_key", "is required")
+	}
+	return nil
+}
+
+type PixTransfer struct {
+	ID              string    `json:"id"`
+	PartnerID       string    `json:"partner_id"`
+	SourceAccountID string    `json:"source_account_id"`
+	AmountCents     int64     `json:"amount_cents"`
+	Currency        string    `json:"currency"`
+	PixKey          string    `json:"pix_key"`
+	Status          string    `json:"status"`
+	Description     string    `json:"description"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type PayoutRequest struct {
+	AccountID     string `json:"account_id"`
+	AmountCents   int64  `json:"amount_cents"`
+	Currency      string `json:"currency"`
+	BankCode      string `json:"bank_code"`
+	Branch        string `json:"branch"`
+	AccountNumber string `json:"account_number"`
+	Document      string `json:"document"`
+	Description   string `json:"description"`
+}
+
+func (r PayoutRequest) Validate() error {
+	if strings.TrimSpace(r.AccountID) == "" {
+		return fieldError("account_id", "is required")
+	}
+	if r.AmountCents <= 0 {
+		return fieldError("amount_cents", "must be greater than zero")
+	}
+	if normalizeCurrency(r.Currency) != "BRL" {
+		return fieldError("currency", "must be BRL")
+	}
+	if strings.TrimSpace(r.BankCode) == "" || strings.TrimSpace(r.Branch) == "" || strings.TrimSpace(r.AccountNumber) == "" {
+		return fieldError("bank_account", "bank_code, branch, and account_number are required")
+	}
+	if strings.TrimSpace(r.Document) == "" {
+		return fieldError("document", "is required")
+	}
+	return nil
+}
+
+type Payout struct {
+	ID            string    `json:"id"`
+	PartnerID     string    `json:"partner_id"`
+	AccountID     string    `json:"account_id"`
+	AmountCents   int64     `json:"amount_cents"`
+	Currency      string    `json:"currency"`
+	Status        string    `json:"status"`
+	BankCode      string    `json:"bank_code"`
+	Branch        string    `json:"branch"`
+	AccountNumber string    `json:"account_number"`
+	Description   string    `json:"description"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type RefundRequest struct {
+	OriginalTransactionID string `json:"original_transaction_id"`
+	AccountID             string `json:"account_id"`
+	AmountCents           int64  `json:"amount_cents"`
+	Currency              string `json:"currency"`
+	Reason                string `json:"reason"`
+}
+
+func (r RefundRequest) Validate() error {
+	if strings.TrimSpace(r.OriginalTransactionID) == "" {
+		return fieldError("original_transaction_id", "is required")
+	}
+	if strings.TrimSpace(r.AccountID) == "" {
+		return fieldError("account_id", "is required")
+	}
+	if r.AmountCents <= 0 {
+		return fieldError("amount_cents", "must be greater than zero")
+	}
+	if normalizeCurrency(r.Currency) != "BRL" {
+		return fieldError("currency", "must be BRL")
+	}
+	if strings.TrimSpace(r.Reason) == "" {
+		return fieldError("reason", "is required")
+	}
+	return nil
+}
+
+type Refund struct {
+	ID                    string    `json:"id"`
+	PartnerID             string    `json:"partner_id"`
+	AccountID             string    `json:"account_id"`
+	OriginalTransactionID string    `json:"original_transaction_id"`
+	AmountCents           int64     `json:"amount_cents"`
+	Currency              string    `json:"currency"`
+	Status                string    `json:"status"`
+	Reason                string    `json:"reason"`
+	CreatedAt             time.Time `json:"created_at"`
+}
+
+type WebhookEndpointRequest struct {
+	URL         string   `json:"url"`
+	EventTypes  []string `json:"event_types"`
+	Description string   `json:"description"`
+}
+
+func (r WebhookEndpointRequest) Validate() error {
+	parsed, err := url.ParseRequestURI(strings.TrimSpace(r.URL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fieldError("url", "must be an absolute URL")
+	}
+	if parsed.Scheme != "https" && parsed.Host != "localhost" {
+		return fieldError("url", "must use https outside localhost")
+	}
+	if len(r.EventTypes) == 0 {
+		return fieldError("event_types", "must contain at least one event type")
+	}
+	for _, eventType := range r.EventTypes {
+		if strings.TrimSpace(eventType) == "" {
+			return fieldError("event_types", "must not contain blank values")
+		}
+	}
+	return nil
+}
+
+type WebhookEndpoint struct {
+	ID          string    `json:"id"`
+	PartnerID   string    `json:"partner_id"`
+	URL         string    `json:"url"`
+	EventTypes  []string  `json:"event_types"`
+	Description string    `json:"description"`
+	SecretID    string    `json:"secret_id"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Event struct {
+	ID             string         `json:"event_id"`
+	Type           string         `json:"event_type"`
+	SchemaVersion  string         `json:"schema_version"`
+	OccurredAt     time.Time      `json:"occurred_at"`
+	Producer       string         `json:"producer"`
+	PartnerID      string         `json:"partner_id"`
+	DeveloperAppID string         `json:"developer_app_id"`
+	CorrelationID  string         `json:"correlation_id"`
+	Payload        map[string]any `json:"payload"`
+}
+
+type WebhookDelivery struct {
+	ID           string    `json:"id"`
+	EndpointID   string    `json:"endpoint_id"`
+	EventID      string    `json:"event_id"`
+	PartnerID    string    `json:"partner_id"`
+	Status       string    `json:"status"`
+	Signature    string    `json:"signature"`
+	NextAttempt  time.Time `json:"next_attempt_at"`
+	AttemptCount int       `json:"attempt_count"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type AuditEntry struct {
+	ID            string    `json:"id"`
+	PartnerID     string    `json:"partner_id"`
+	RequestID     string    `json:"request_id"`
+	CorrelationID string    `json:"correlation_id"`
+	Action        string    `json:"action"`
+	ResourceID    string    `json:"resource_id"`
+	Status        string    `json:"status"`
+	Reason        string    `json:"reason,omitempty"`
+	OccurredAt    time.Time `json:"occurred_at"`
+}
+
+type SandboxScenario struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func normalizeCurrency(currency string) string {
+	return strings.ToUpper(strings.TrimSpace(currency))
+}
+
+func fieldError(field, message string) error {
+	return fmt.Errorf("%w: %s %s", ErrValidation, field, message)
+}
