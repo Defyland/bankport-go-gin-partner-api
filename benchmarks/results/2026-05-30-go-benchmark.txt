@@ -7,8 +7,8 @@ Environment:
 Command:
 go test -bench=. -benchmem ./internal/httpapi
 
-Result:
-BenchmarkGetBalanceRequest-10  116750  10566 ns/op  10885 B/op  85 allocs/op
+Latest native benchmark result:
+BenchmarkGetBalanceRequest-10  120440  11691 ns/op  10881 B/op  85 allocs/op
 
 HTTP loop measurement:
 - Requests: 1000

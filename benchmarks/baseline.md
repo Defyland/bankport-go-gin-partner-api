@@ -27,7 +27,7 @@ darwin/arm64 against the in-process Gin router.
 | Scenario | p50 | p95 | p99 | Throughput | Error rate | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | HTTP balance read loop | 0.341 ms | 0.534 ms | 0.740 ms | 2501.52 rps | 0.0% | Local loopback API on port 18080. |
-| `BenchmarkGetBalanceRequest` | n/a | n/a | n/a | 10566 ns/op | 0.0% | In-process benchmark: 10885 B/op, 85 allocs/op. |
+| `BenchmarkGetBalanceRequest` | n/a | n/a | n/a | 11691 ns/op | 0.0% | In-process benchmark: 10881 B/op, 85 allocs/op. |
 
 ## Bottleneck hypothesis
 
