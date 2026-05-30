@@ -1,81 +1,55 @@
 # Tech Lead Assessment
 
-This document evaluates BankPort as if a hiring team were using it to assess
-senior or tech-lead readiness. It separates what already demonstrates seniority
-from what needed technical improvement and what should come next for the
-strongest production-readiness signal.
+This document is written for a reviewer evaluating whether BankPort demonstrates
+senior/tech-lead judgment. It separates evidence already implemented from the
+next moves that would make the repository closer to production-ready.
 
-## Executive assessment
+## What Already Signals Seniority
 
-BankPort is now credible as a senior portfolio project because it has a real
-product boundary, runnable API, explicit domain language, authorization and
-idempotency controls, event contracts, observability, CI, benchmark evidence,
-ADRs, and runbooks.
+- The project is framed as a product, not a framework demo: partner developers,
+  partner operations, financial write safety, webhook evidence, and auditability
+  are explicit.
+- The API has real edge controls: API-key authentication, scopes, rate limits,
+  idempotency, standardized errors, request IDs, correlation IDs, and audit logs.
+- The domain model includes financial invariants: tenant ownership, available
+  balance checks, idempotency conflicts, webhook HTTPS validation, and cumulative
+  refund limits.
+- The architecture is intentionally constrained: modular monolith before
+  microservices, fake adapters before real banking providers, PostgreSQL/Redis
+  planned behind stable interfaces.
+- Observability is operationally useful: structured logs, domain metrics,
+  traces, dashboard, alert rules, and runbooks.
+- The repository has CI, OpenAPI, Docker assets, benchmark scripts, measured
+  benchmark output, ADRs, security docs, scalability docs, and cost analysis.
 
-The strongest signal is not the Gin setup. It is the way the repository explains
-and tests financial API failure modes: BOLA, duplicate writes, rate limits,
-webhook signing, audit evidence, and cumulative refund safety.
+## What Needed Technical Improvement
 
-## What was already strong
-
-| Area | Evidence | Why it matters |
+| Finding | Why it matters | Change applied |
 | --- | --- | --- |
-| Product framing | README and `docs/product/` | Shows the author can define users, workflows, non-goals, and roadmap. |
-| Middleware architecture | `internal/httpapi/middleware/` | Makes auth, scopes, rate limits, idempotency, logs, metrics, and tracing explicit. |
-| Domain tests | `internal/httpapi/router_test.go`, `internal/store/memory_test.go` | Tests business risk instead of only handler happy paths. |
-| Security posture | `docs/security/` and auth/scope tests | Shows awareness of BOLA, secrets, rate limits, webhooks, and auditability. |
-| Operational evidence | CI, Prometheus, Grafana, runbooks, k6 scripts | Gives reviewers a path to operate and inspect the system. |
+| Refund validation only checked each refund against the original amount. | Multiple partial refunds could exceed the original Pix transfer, a real financial correctness bug. | Added cumulative refund tracking, production SQL guard documentation, and regression test. |
+| Idempotency cache had no expiry behavior. | A long-lived API process could grow memory without bound and replay stale financial responses longer than intended. | Added configurable `IDEMPOTENCY_TTL`, expiry cleanup, and test coverage. |
+| Rate-limit windows had no cleanup path. | Many partners/routes over time could leave stale limiter keys in memory. | Added expired-window pruning and test coverage. |
+| Observability had dashboards but no alert rules. | A reviewer should see how operators know when to act, not only where charts live. | Added Prometheus alert rules and an observability subsystem doc. |
+| Spec-driven evidence was missing. | The new standard requires explicit acceptance criteria, plan, and verification report before claiming readiness. | Added `docs/spec-driven/` with readiness spec, plan, and report. |
 
-## What needed improvement
+## What I Would Prioritize Next
 
-| Finding | Severity | Why it matters | Change made |
-| --- | --- | --- | --- |
-| Cumulative refunds could exceed the original transaction if split across multiple requests. | Critical | This is a real money-movement bug. Each refund can look valid while the sum over-refunds. | Added refunded amount tracking, SQL guard documentation, event evidence, and regression test. |
-| Idempotency records did not expire. | High | Long-running APIs cannot keep replay cache state forever. Unbounded maps become memory risk. | Added TTL-backed idempotency store with cleanup and tests. |
-| Rate-limit windows did not prune old keys. | Medium | Per-partner route maps can grow forever under changing traffic patterns. | Added expired-window pruning and tests. |
-| Production-readiness narrative was spread across files. | Medium | A reviewer should not have to infer the author’s judgment. | Added this assessment and linked decisions to tests/docs. |
+1. Implement the PostgreSQL repository with transaction tests around account
+   debits, idempotency unique constraints, outbox insert, and cumulative refund
+   guarded updates.
+2. Add Redis-backed distributed rate limiting and idempotency cache reads while
+   keeping PostgreSQL as the source of truth.
+3. Add a durable webhook worker with retry queue, dead-letter queue, replay
+   endpoint, endpoint-level retry budget, and queue-depth metrics.
+4. Wire OpenTelemetry exporter and Prometheus Alertmanager in Compose.
+5. Add provider adapter interfaces with contract tests for Pix, payout, and
+   refund rails before integrating any real provider.
 
-## Spec-driven acceptance criteria
+## Reviewer Narrative
 
-| Requirement | Evidence |
-| --- | --- |
-| Financial writes are retry-safe. | Idempotency middleware, OpenAPI `Idempotency-Key`, replay/conflict tests. |
-| Tenant isolation is enforced. | Repository ownership checks and BOLA tests. |
-| Refunds cannot over-credit an account. | `TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount` and `refunded_amount_cents` migration guard. |
-| Concurrent writes preserve financial invariants. | `TestConcurrentPixTransfersDoNotOverspendAccount` and `TestConcurrentRefundsDoNotExceedOriginalAmount`. |
-| Middleware state is bounded. | `TestIdempotencyStoreExpiresRecords` and `TestRateLimiterPrunesExpiredWindows`. |
-| Public API contract is reviewable. | `openapi.yaml` and `docs/api/`. |
-| Operations are observable. | `/metrics`, structured logs, request IDs, correlation IDs, Grafana dashboard, runbooks. |
-| CI verifies quality gates. | `.github/workflows/ci.yml`. |
-| Performance is measured. | `benchmarks/baseline.md` and `benchmarks/results/2026-05-30-go-benchmark.txt`. |
-
-## What would impress a senior hiring panel next
-
-1. Implement the PostgreSQL repository behind the current store contract.
-   The highest-value proof is a transaction that atomically checks idempotency,
-   locks or version-checks the account row, mutates balance, appends statement
-   evidence, updates cumulative refund state, inserts outbox events, and writes
-   audit entries.
-
-2. Move rate limiting and idempotency cache reads to Redis.
-   This shows distributed-systems judgment: local memory is acceptable for the
-   sandbox, but horizontally scaled APIs need shared short-lived state.
-
-3. Add a durable webhook worker.
-   The next production-ready slice should include retry policy, exponential
-   backoff, dead-letter state, replay endpoint, signature verification fixtures,
-   and metrics for queue age and delivery outcomes.
-
-4. Run k6 against Docker Compose in CI or a reproducible local script.
-   The current benchmark evidence is useful; a stronger signal is repeatable
-   p50/p95/p99 under smoke, load, stress, and spike profiles with stored output.
-
-## How to discuss this repository in an interview
-
-Lead with the product risk: BankPort is about giving partners a safe financial
-API boundary, not about demonstrating Gin syntax. Then point to the controls:
-scopes, tenant isolation, idempotency, cumulative refund safety, event contracts,
-webhook signatures, observability, runbooks, and ADRs. Finally, be explicit
-about deferred complexity: PostgreSQL, Redis, and workers are intentionally the
-next production slice because the public contract and invariants needed to be
-settled first.
+BankPort is strongest when described as a production-shaped partner API sandbox:
+it proves product thinking, domain safety, operational controls, and explicit
+trade-offs without pretending that fake adapters are real banking integrations.
+That honesty is a senior signal. The next strongest signal would be replacing
+the in-memory repository with PostgreSQL/Redis adapters while preserving the
+existing tests and public API contract.
