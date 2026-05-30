@@ -29,6 +29,18 @@ func TestCreatePixTransferDebitsOnlyPartnerOwnedAccount(t *testing.T) {
 	}
 }
 
+func TestHashAPIKeyUsesPepper(t *testing.T) {
+	apiKey := "bp_test_key"
+	first := HashAPIKey(apiKey, "pepper-one")
+	second := HashAPIKey(apiKey, "pepper-two")
+	if first == second {
+		t.Fatal("expected different peppers to produce different API key hashes")
+	}
+	if first == HashAPIKey("different-key", "pepper-one") {
+		t.Fatal("expected different API keys to produce different hashes")
+	}
+}
+
 func TestCreatePixTransferQueuesWebhookDelivery(t *testing.T) {
 	cfg := config.Load()
 	repo := NewSeededRepository(cfg)

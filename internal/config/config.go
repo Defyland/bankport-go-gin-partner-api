@@ -18,6 +18,7 @@ type Config struct {
 	IdempotencyTTL      time.Duration
 	ReadinessEnabled    bool
 	DefaultRateLimitRPM int
+	APIKeyHashPepper    string
 	WebhookSigningKey   string
 	FullAccessAPIKey    string
 	ReadOnlyAPIKey      string
@@ -35,6 +36,7 @@ func Load() Config {
 		IdempotencyTTL:      envDuration("IDEMPOTENCY_TTL", 24*time.Hour),
 		ReadinessEnabled:    envBool("READINESS_ENABLED", true),
 		DefaultRateLimitRPM: envInt("RATE_LIMIT_PER_MINUTE", 120),
+		APIKeyHashPepper:    env("API_KEY_HASH_PEPPER", "dev-only-api-key-hash-pepper-change-me"),
 		WebhookSigningKey:   env("WEBHOOK_SIGNING_KEY", "dev-only-webhook-signing-key-change-me"),
 		FullAccessAPIKey:    env("BANKPORT_FULL_ACCESS_API_KEY", "bp_sandbox_full_access_key"),
 		ReadOnlyAPIKey:      env("BANKPORT_READONLY_API_KEY", "bp_sandbox_readonly_key"),

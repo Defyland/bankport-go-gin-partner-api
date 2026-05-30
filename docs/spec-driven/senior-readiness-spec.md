@@ -104,6 +104,7 @@ Compose validation, and Docker build validation in CI.
 | Data model names constraints, indexes, and transaction assumptions. | `db/migrations/001_init.sql`, `docs/scalability.md`, `docs/engineering-case-study.md` | Done | Production adapters still planned, but schema is concrete. |
 | Tenant isolation and BOLA prevention are tested. | `TestTenantIsolationHidesForeignAccount`, `TestCreatePixTransferDebitsOnlyPartnerOwnedAccount` | Done | Cross-partner account access returns not found. |
 | API-key scope enforcement is tested. | `TestRejectsInsufficientScope` | Done | Read-only key cannot write Pix transfer. |
+| API-key hashes are protected by a secret pepper. | `internal/store/memory.go`, `docs/security/secrets.md` | Done | Sandbox uses HMAC-SHA256 with `API_KEY_HASH_PEPPER`; production rotation path is documented. |
 | Idempotency replay, conflict, and TTL cleanup are tested. | `TestIdempotentFinancialWriteReplaysCachedResponse`, `TestIdempotencyConflict`, `TestIdempotencyStoreExpiresRecords` | Done | TTL defaults to 24h and is configurable. |
 | Rate limiting and cleanup are tested. | `TestRateLimitExceeded`, `TestRateLimiterPrunesExpiredWindows` | Done | Current implementation is in-memory fixed window; Redis is planned. |
 | Webhook signing and delivery evidence are tested. | `TestWebhookRegistrationAndDeliveryQueue`, `TestSignerCreatesVersionedHMACSignature` | Done | Durable worker and DLQ are planned. |

@@ -19,7 +19,7 @@
 
 | Threat | Control |
 | --- | --- |
-| Stolen API credential | hashed secrets, rotation workflows, and scoped access |
+| Stolen API credential | peppered HMAC hashes, rotation workflows, and scoped access |
 | Overbroad partner access | API products, scopes, and partner resolution middleware |
 | Request replay | idempotency keys with request-hash comparison |
 | Rate-limit abuse | Redis-backed limits and explicit error envelope |

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -18,6 +19,7 @@ import (
 type Repository struct {
 	mu sync.RWMutex
 
+	apiKeyHashPepper     string
 	partnersByAPIKeyHash map[string]domain.Partner
 	accounts             map[string]domain.Account
 	statements           map[string][]domain.StatementEntry
@@ -35,6 +37,7 @@ type Repository struct {
 func NewSeededRepository(cfg config.Config) *Repository {
 	now := time.Now().UTC()
 	repo := &Repository{
+		apiKeyHashPepper:     cfg.APIKeyHashPepper,
 		partnersByAPIKeyHash: make(map[string]domain.Partner),
 		accounts:             make(map[string]domain.Account),
 		statements:           make(map[string][]domain.StatementEntry),
@@ -54,7 +57,7 @@ func NewSeededRepository(cfg config.Config) *Repository {
 		ID:                 "partner_sandbox_bank",
 		Name:               "Sandbox Bank",
 		DeveloperAppID:     "app_sandbox_full",
-		APIKeyHash:         HashAPIKey(cfg.FullAccessAPIKey),
+		APIKeyHash:         HashAPIKey(cfg.FullAccessAPIKey, cfg.APIKeyHashPepper),
 		RateLimitPerMinute: cfg.DefaultRateLimitRPM,
 		Scopes: scopeSet(
 			domain.ScopeAccountsRead,
@@ -70,7 +73,7 @@ func NewSeededRepository(cfg config.Config) *Repository {
 		ID:                 "partner_sandbox_bank",
 		Name:               "Sandbox Bank Read Only",
 		DeveloperAppID:     "app_sandbox_readonly",
-		APIKeyHash:         HashAPIKey(cfg.ReadOnlyAPIKey),
+		APIKeyHash:         HashAPIKey(cfg.ReadOnlyAPIKey, cfg.APIKeyHashPepper),
 		RateLimitPerMinute: cfg.DefaultRateLimitRPM,
 		Scopes:             scopeSet(domain.ScopeAccountsRead, domain.ScopeSandboxRead),
 	})
@@ -78,7 +81,7 @@ func NewSeededRepository(cfg config.Config) *Repository {
 		ID:                 "partner_other_bank",
 		Name:               "Other Partner Bank",
 		DeveloperAppID:     "app_other_partner",
-		APIKeyHash:         HashAPIKey(cfg.OtherPartnerAPIKey),
+		APIKeyHash:         HashAPIKey(cfg.OtherPartnerAPIKey, cfg.APIKeyHashPepper),
 		RateLimitPerMinute: cfg.DefaultRateLimitRPM,
 		Scopes:             scopeSet(domain.ScopeAccountsRead, domain.ScopePixWrite, domain.ScopeSandboxRead),
 	})
@@ -114,16 +117,17 @@ func NewSeededRepository(cfg config.Config) *Repository {
 	return repo
 }
 
-func HashAPIKey(apiKey string) string {
-	sum := sha256.Sum256([]byte(apiKey))
-	return hex.EncodeToString(sum[:])
+func HashAPIKey(apiKey, pepper string) string {
+	mac := hmac.New(sha256.New, []byte(pepper))
+	_, _ = mac.Write([]byte(apiKey))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 func (r *Repository) AuthenticateAPIKey(apiKey string) (domain.Partner, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	partner, ok := r.partnersByAPIKeyHash[HashAPIKey(strings.TrimSpace(apiKey))]
+	partner, ok := r.partnersByAPIKeyHash[HashAPIKey(strings.TrimSpace(apiKey), r.apiKeyHashPepper)]
 	return partner, ok
 }
 
