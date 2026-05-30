@@ -1,0 +1,6 @@
+.git
+.github
+benchmarks/results
+coverage.out
+tmp
+.DS_Store

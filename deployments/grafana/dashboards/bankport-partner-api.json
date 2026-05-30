@@ -1,0 +1,54 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        { "expr": "sum(rate(bankport_partner_api_http_requests_total[5m])) by (route, status)", "legendFormat": "{{route}} {{status}}" }
+      ],
+      "title": "HTTP throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(bankport_partner_api_http_request_duration_seconds_bucket[5m])) by (le, route))", "legendFormat": "p95 {{route}}" }
+      ],
+      "title": "p95 latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        { "expr": "sum(rate(bankport_partner_api_financial_commands_total[5m])) by (command, status)", "legendFormat": "{{command}} {{status}}" },
+        { "expr": "sum(rate(bankport_partner_api_rate_limit_exceeded_total[5m]))", "legendFormat": "rate limited" },
+        { "expr": "sum(rate(bankport_partner_api_idempotency_conflicts_total[5m]))", "legendFormat": "idempotency conflicts" }
+      ],
+      "title": "Domain controls",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["bankport", "partner-api"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "BankPort Partner API",
+  "uid": "bankport-partner-api",
+  "version": 1
+}

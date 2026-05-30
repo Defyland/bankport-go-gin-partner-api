@@ -1,0 +1,46 @@
+groups:
+  - name: bankport-partner-api
+    rules:
+      - alert: BankPortHighErrorRate
+        expr: |
+          sum(rate(bankport_partner_api_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(bankport_partner_api_http_requests_total[5m])), 1)
+          > 0.02
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: BankPort 5xx error rate is above 2%.
+          runbook: docs/runbooks/partner-api-contract-drift.md
+
+      - alert: BankPortP95LatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(bankport_partner_api_http_request_duration_seconds_bucket[5m])) by (le, route)
+          ) > 0.25
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: BankPort p95 latency is above 250 ms for a public route.
+          runbook: docs/runbooks/rate-limit-spike.md
+
+      - alert: BankPortRateLimitSpike
+        expr: sum(rate(bankport_partner_api_rate_limit_exceeded_total[5m])) > 5
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Partner requests are being rate limited at elevated volume.
+          runbook: docs/runbooks/rate-limit-spike.md
+
+      - alert: BankPortIdempotencyConflictSpike
+        expr: sum(rate(bankport_partner_api_idempotency_conflicts_total[5m])) > 1
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Idempotency conflicts increased and may indicate retry misuse or abuse.
+          runbook: docs/runbooks/partner-api-contract-drift.md

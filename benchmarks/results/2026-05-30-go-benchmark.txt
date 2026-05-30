@@ -1,0 +1,27 @@
+Environment:
+- Date: 2026-05-30
+- Runtime: Go 1.26.3 darwin/arm64
+- CPU: Apple M1 Max
+- Scenario: in-process Gin router benchmark for authenticated balance read
+
+Command:
+go test -bench=. -benchmem ./internal/httpapi
+
+Result:
+BenchmarkGetBalanceRequest-10  116750  10566 ns/op  10885 B/op  85 allocs/op
+
+HTTP loop measurement:
+- Requests: 1000
+- Duration: 0.3998 seconds
+- Throughput: 2501.52 requests/second
+- Error rate: 0.0%
+- p50: 0.341 ms
+- p95: 0.534 ms
+- p99: 0.740 ms
+- mean: 0.382 ms
+- max: 12.484 ms
+
+Notes:
+- HTTP loop used the local API on port 18080 with RATE_LIMIT_PER_MINUTE=1000000.
+- This measures local loopback latency, not a containerized or networked deployment.
+- k6 scripts should be used for repeatable smoke/load/stress/spike profiles.
