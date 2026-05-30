@@ -15,6 +15,7 @@ API behavior.
 | Redis | memory sizing, eviction monitoring | low-latency distributed rate limits |
 | Webhook worker | retry operations, DLQ handling | reliable partner event delivery |
 | Prometheus/Grafana | dashboard upkeep, storage | incident response and SLO evidence |
+| Alertmanager or equivalent | routing policy and on-call hygiene | actionable alerts from Prometheus rules |
 | Secret manager | rotation workflow | API and webhook key safety |
 
 ## Debugging cost

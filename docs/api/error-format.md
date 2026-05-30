@@ -28,4 +28,5 @@ All application errors use the same envelope:
 | `validation_failed` | 400 | Request body failed domain validation. |
 | `account_not_found` | 404 | Account does not exist for this partner. |
 | `insufficient_funds` | 422 | Account balance cannot cover the command. |
+| `refund_exceeds_original` | 422 | Refund would exceed the original transaction amount, including previous partial refunds. |
 | `rate_limit_exceeded` | 429 | Partner exceeded the route rate limit. |

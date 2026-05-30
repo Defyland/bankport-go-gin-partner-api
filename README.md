@@ -149,6 +149,13 @@ ADRs live in `docs/adr/`.
 For a reviewer-oriented technical assessment, see
 `docs/tech-lead-assessment.md`.
 
+For the explicit spec-driven acceptance criteria, implementation mapping, and
+verification report, see:
+
+- `docs/spec-driven/senior-readiness-spec.md`
+- `docs/spec-driven/implementation-plan.md`
+- `docs/spec-driven/verification-report.md`
+
 ## 16. How to run locally
 
 With Go:

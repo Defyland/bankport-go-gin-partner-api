@@ -15,6 +15,13 @@ without depending on Gin.
 7. Financial write routes enforce idempotency.
 8. Handlers call domain repository methods and emit events/audit evidence.
 
+## Observability boundary
+
+Observability is treated as part of the architecture, not as an afterthought.
+The API emits structured request logs, Prometheus metrics, OpenTelemetry spans,
+health/readiness responses, dashboard panels, and alert rules. See
+[observability.md](observability.md).
+
 ## Current runtime
 
 The MVP uses an in-memory seeded repository so the product is runnable without

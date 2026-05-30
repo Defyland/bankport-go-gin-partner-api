@@ -33,11 +33,10 @@ available during this run.
   automated tests.
 - Observability includes logs, metrics, traces, dashboard, alert rules, and
   runbooks.
-- Atomic commits exist on `codex/tech-lead-production-readiness`:
-  `feat(api): implement partner API runtime controls`,
-  `docs: add senior engineering evidence package`,
-  `chore(platform): add CI observability and benchmarks`,
-  and `docs: add spec-driven readiness audit`.
+- Atomic commits exist on `codex/tech-lead-production-readiness`; verify with
+  `git log --oneline`. The history separates API runtime, senior engineering
+  evidence docs, platform/observability/benchmark automation, spec-driven audit,
+  and final readiness evidence links.
 
 ## Partial Criteria
 
