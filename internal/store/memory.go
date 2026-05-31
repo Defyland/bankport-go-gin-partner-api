@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -251,7 +250,7 @@ func (r *Repository) ListStatements(ctx context.Context, partnerID, accountID st
 	return entries, nil
 }
 
-func (r *Repository) CreatePixTransfer(ctx context.Context, partner domain.Partner, request domain.PixTransferRequest, correlationID string, sign SignEventFunc) (domain.PixTransfer, int, error) {
+func (r *Repository) CreatePixTransfer(ctx context.Context, partner domain.Partner, request domain.PixTransferRequest, correlationID string, sign domain.SignEventFunc) (domain.PixTransfer, int, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.PixTransfer{}, 0, err
 	}
@@ -311,7 +310,7 @@ func (r *Repository) CreatePixTransfer(ctx context.Context, partner domain.Partn
 	return transfer, deliveries, nil
 }
 
-func (r *Repository) CreatePayout(ctx context.Context, partner domain.Partner, request domain.PayoutRequest, correlationID string, sign SignEventFunc) (domain.Payout, int, error) {
+func (r *Repository) CreatePayout(ctx context.Context, partner domain.Partner, request domain.PayoutRequest, correlationID string, sign domain.SignEventFunc) (domain.Payout, int, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.Payout{}, 0, err
 	}
@@ -373,7 +372,7 @@ func (r *Repository) CreatePayout(ctx context.Context, partner domain.Partner, r
 	return payout, deliveries, nil
 }
 
-func (r *Repository) CreateRefund(ctx context.Context, partner domain.Partner, request domain.RefundRequest, correlationID string, sign SignEventFunc) (domain.Refund, int, error) {
+func (r *Repository) CreateRefund(ctx context.Context, partner domain.Partner, request domain.RefundRequest, correlationID string, sign domain.SignEventFunc) (domain.Refund, int, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.Refund{}, 0, err
 	}
@@ -532,7 +531,7 @@ func (r *Repository) appendEventLocked(partner domain.Partner, correlationID, ev
 	return event
 }
 
-func (r *Repository) queueDeliveriesLocked(ctx context.Context, partnerID string, event domain.Event, sign SignEventFunc) int {
+func (r *Repository) queueDeliveriesLocked(ctx context.Context, partnerID string, event domain.Event, sign domain.SignEventFunc) int {
 	queued := 0
 	for _, endpoint := range r.webhookEndpoints {
 		if ctx.Err() != nil {
@@ -614,23 +613,4 @@ func newToken(size int) string {
 		return hex.EncodeToString(sum[:])[:size*2]
 	}
 	return hex.EncodeToString(bytes)
-}
-
-type SignEventFunc func(event domain.Event, endpoint domain.WebhookEndpoint) string
-
-func ErrorCode(err error) string {
-	switch {
-	case errors.Is(err, domain.ErrValidation):
-		return "validation_failed"
-	case errors.Is(err, domain.ErrAccountNotFound):
-		return "account_not_found"
-	case errors.Is(err, domain.ErrInsufficientFunds):
-		return "insufficient_funds"
-	case errors.Is(err, domain.ErrOriginalTxnNotFound):
-		return "original_transaction_not_found"
-	case errors.Is(err, domain.ErrRefundExceedsOriginal):
-		return "refund_exceeds_original"
-	default:
-		return "internal_error"
-	}
 }

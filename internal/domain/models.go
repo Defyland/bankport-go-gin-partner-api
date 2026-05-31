@@ -40,6 +40,25 @@ var (
 	ErrRefundExceedsOriginal = errors.New("refund exceeds original transaction amount")
 )
 
+type SignEventFunc func(event Event, endpoint WebhookEndpoint) string
+
+func ErrorCode(err error) string {
+	switch {
+	case errors.Is(err, ErrValidation):
+		return "validation_failed"
+	case errors.Is(err, ErrAccountNotFound):
+		return "account_not_found"
+	case errors.Is(err, ErrInsufficientFunds):
+		return "insufficient_funds"
+	case errors.Is(err, ErrOriginalTxnNotFound):
+		return "original_transaction_not_found"
+	case errors.Is(err, ErrRefundExceedsOriginal):
+		return "refund_exceeds_original"
+	default:
+		return "internal_error"
+	}
+}
+
 type Partner struct {
 	ID                 string
 	Name               string
