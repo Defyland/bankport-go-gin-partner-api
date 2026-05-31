@@ -41,6 +41,21 @@ func TestHashAPIKeyUsesPepper(t *testing.T) {
 	}
 }
 
+func TestNewTokenFallsBackWhenRandomReaderFails(t *testing.T) {
+	original := randomRead
+	randomRead = func([]byte) (int, error) {
+		return 0, errors.New("entropy unavailable")
+	}
+	t.Cleanup(func() {
+		randomRead = original
+	})
+
+	token := newToken(12)
+	if len(token) != 24 {
+		t.Fatalf("expected fallback token length 24, got %d", len(token))
+	}
+}
+
 func TestCreatePixTransferHonorsCanceledContextBeforeMutation(t *testing.T) {
 	cfg := config.Load()
 	repo := NewSeededRepository(cfg)

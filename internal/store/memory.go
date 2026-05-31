@@ -10,10 +10,16 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/allanflavio/bankport-go-gin-partner-api/internal/config"
 	"github.com/allanflavio/bankport-go-gin-partner-api/internal/domain"
+)
+
+var (
+	randomRead      = rand.Read
+	fallbackCounter atomic.Uint64
 )
 
 type Repository struct {
@@ -514,8 +520,10 @@ func newID(prefix string) string {
 
 func newToken(size int) string {
 	bytes := make([]byte, size)
-	if _, err := rand.Read(bytes); err != nil {
-		panic(err)
+	if _, err := randomRead(bytes); err != nil {
+		seed := fmt.Sprintf("%d:%d", time.Now().UnixNano(), fallbackCounter.Add(1))
+		sum := sha256.Sum256([]byte(seed))
+		return hex.EncodeToString(sum[:])[:size*2]
 	}
 	return hex.EncodeToString(bytes)
 }
