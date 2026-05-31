@@ -6,13 +6,13 @@ The implemented tests cover the highest-risk invariants:
 | --- | --- | --- |
 | Missing or invalid API key cannot access `/v1` routes. | Auth middleware | `TestRequiresAuthentication` |
 | Read-only keys cannot execute financial writes. | Scope middleware | `TestRejectsInsufficientScope` |
-| Partners cannot read or mutate another partner account. | Repository ownership checks | `TestTenantIsolationHidesForeignAccount`, `TestCreatePixTransferDebitsOnlyPartnerOwnedAccount` |
+| Partners cannot read or mutate another partner account. | Store adapter ownership checks behind use cases | `TestTenantIsolationHidesForeignAccount`, `TestCreatePixTransferDebitsOnlyPartnerOwnedAccount` |
 | Financial writes require idempotency keys. | Idempotency middleware | API tests and OpenAPI contract |
 | Same idempotency key and body returns the cached response. | Response capture cache | `TestIdempotentFinancialWriteReplaysCachedResponse` |
 | Same idempotency key with a different body is rejected. | Request hash comparison | `TestIdempotencyConflict` |
-| Account balance cannot go below zero. | Domain repository check | domain error path and API 422 behavior |
+| Account balance cannot go below zero. | Financial command port enforces the invariant and returns domain errors | domain error path and API 422 behavior |
 | Cumulative refunds cannot exceed the original transaction amount. | Refunded amount tracked per original transfer; production SQL guard documented in migration. | `TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount` |
-| Concurrent writes cannot overspend or over-refund. | Repository lock in sandbox; production requires row-level guarded updates. | `TestConcurrentPixTransfersDoNotOverspendAccount`, `TestConcurrentRefundsDoNotExceedOriginalAmount` |
+| Concurrent writes cannot overspend or over-refund. | Sandbox adapter lock; production requires row-level guarded updates. | `TestConcurrentPixTransfersDoNotOverspendAccount`, `TestConcurrentRefundsDoNotExceedOriginalAmount` |
 | Webhook receivers outside localhost must use HTTPS. | Domain validation | `TestWebhookEndpointRequiresHTTPSOutsideLocalhost` |
 | Webhook subscriptions must use supported event names or `*`. | Domain validation and OpenAPI enum | `TestWebhookEndpointRejectsUnsupportedEventType` |
 | Financial request fields must be bounded and shape-checked before mutation. | Domain validation and OpenAPI constraints | `TestPixTransferRequestRejectsOversizedPixKey`, `TestPayoutRequestValidatesBankAccountShape`, `TestRefundRequestRejectsOversizedReason` |

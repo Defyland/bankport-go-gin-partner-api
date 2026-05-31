@@ -21,7 +21,7 @@ real infrastructure before a production claim would be honest.
 
 | Gap | Why it is not local-only | Required production move |
 | --- | --- | --- |
-| Durable repository | In-memory state cannot survive restart or coordinate multiple API replicas. | Implement PostgreSQL repository with transaction tests and guarded updates. |
+| Durable persistence adapter | In-memory state cannot survive restart or coordinate multiple API replicas. | Implement PostgreSQL adapter with transaction tests and guarded updates. |
 | Distributed rate limits | Fixed-window memory state is process-local. | Use Redis or another shared low-latency store while keeping policy documented. |
 | Shared idempotency reservation | Current wait-and-replay is in-process. | Persist idempotency records in PostgreSQL and use Redis for fast shared reservation/cache. |
 | Durable webhook replay | Current API queues delivery evidence in memory. | Add outbox table, worker, retry budget, DLQ, replay endpoint, and queue metrics. |

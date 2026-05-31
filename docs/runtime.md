@@ -40,7 +40,7 @@ Handlers also receive a request-scoped context from middleware based on
 
 `bankport-api` listens for `SIGINT` and `SIGTERM`, stops accepting new
 requests, and waits up to `SHUTDOWN_TIMEOUT` for in-flight work to finish. The
-sandbox repository checks request contexts before financial mutations so
+sandbox adapter checks request contexts before financial mutations so
 canceled requests do not mutate balances.
 
 ## Optional pprof

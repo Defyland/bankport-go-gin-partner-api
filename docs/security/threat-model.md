@@ -39,7 +39,7 @@
 
 - Public traffic terminates at the Gin API process.
 - Auth, scope, rate limit, and idempotency middleware run before domain mutation.
-- The repository hides cross-tenant resources with 404 responses.
+- The store adapter hides cross-tenant resources with 404 responses.
 - Webhook receivers are treated as untrusted external systems.
 - Correlation IDs are partner-controlled metadata and are never used for authorization.
 

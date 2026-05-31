@@ -5,7 +5,7 @@
 | Partner reuses a Pix idempotency key with a larger amount. | Request hash conflict check. | `TestIdempotencyConflict` |
 | Partner submits multiple partial refunds that cumulatively exceed the original transfer. | Refunded amount tracked per original transaction and guarded before accepting the refund. | `TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount` |
 | Read-only API key attempts a financial write. | Scope middleware. | `TestRejectsInsufficientScope` |
-| Partner tries to read another tenant account. | Repository partner ownership check and 404 response. | `TestTenantIsolationHidesForeignAccount` |
+| Partner tries to read another tenant account. | Store adapter partner ownership check and 404 response. | `TestTenantIsolationHidesForeignAccount` |
 | Attacker floods one route. | Fixed-window rate limiting and 429 response. | `TestRateLimitExceeded` |
 | Partner registers plain HTTP webhook receiver. | HTTPS validation except localhost. | `TestWebhookEndpointRequiresHTTPSOutsideLocalhost` |
 | Webhook payload is tampered with. | Timestamped HMAC signature. | `TestSignerCreatesVersionedHMACSignature` |

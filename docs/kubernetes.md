@@ -26,7 +26,7 @@ readinessProbe:
     port: http
 ```
 
-Readiness must include repository, idempotency/rate-limit backing stores, and
+Readiness must include persistence, idempotency/rate-limit backing stores, and
 worker dependency checks once those adapters are implemented.
 
 ## Runtime Settings
@@ -44,7 +44,7 @@ Recommended pod settings for the API:
 
 Adding full manifests now would be misleading because:
 
-- The runtime repository is still in-memory.
+- The runtime state adapter is still in-memory.
 - Rate limiting and idempotency are process-local.
 - Webhook delivery is not yet a durable worker.
 - Secrets are environment-backed for sandbox review, not backed by a cluster

@@ -6,13 +6,13 @@
 - API-key authentication and scoped authorization
 - fixed-window rate limiting
 - idempotent financial writes
-- in-memory sandbox repository
+- in-memory sandbox adapter
 - webhook registration and queued delivery evidence
 - Prometheus metrics, structured logs, request IDs, and tracing spans
 
 ## Next
 
-- PostgreSQL repository using `db/migrations/001_init.sql`
+- PostgreSQL adapter using `db/migrations/001_init.sql`
 - Redis-backed rate limiting and idempotency TTLs
 - webhook worker with retries, dead-letter queue, and replay endpoint
 - OpenTelemetry exporter wiring for a collector

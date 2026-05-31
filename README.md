@@ -40,10 +40,15 @@ contract drift create real financial and support risk.
 
 ## 5. Architecture overview
 
-The API is a modular monolith. Gin owns routing and middleware composition.
-Domain types, repository behavior, metrics, and webhook signing live in focused
-internal packages. The sandbox repository is in memory; the production data
-model is documented in `db/migrations/001_init.sql`.
+The API is a modular monolith shaped as an API platform with
+Clean/Hexagonal/Ports and Adapters boundaries. Gin is only a primary delivery
+adapter: it owns routing, middleware composition, JSON binding, and HTTP
+response mapping. Application use cases in `internal/usecase` orchestrate
+partner policies, financial command outcomes, audit evidence, webhook queue
+metrics, and ports. Domain code in `internal/domain` owns invariants and does
+not know Gin, database, cache, CLI, or Prometheus APIs. The sandbox adapter
+is in memory; the production data model is documented in
+`db/migrations/001_init.sql`.
 
 ## 6. Tech stack
 
@@ -88,12 +93,13 @@ idempotency cache reads.
 Tests cover:
 
 - domain validation
+- application use-case orchestration with fake adapters
 - API authentication and scopes
 - tenant isolation and BOLA prevention
 - idempotency replay and conflict handling
 - rate-limit failures
 - webhook registration and signing
-- repository behavior and event queuing
+- store adapter behavior and event queuing
 - cumulative refund protection
 - idempotency and rate-limit memory cleanup
 - native benchmark for the hot read path
@@ -142,7 +148,7 @@ and audit entries. See `docs/security/`.
 
 ## 15. Trade-offs and decisions
 
-The project intentionally uses an in-memory sandbox repository so the API can be
+The project intentionally uses an in-memory sandbox adapter so the API can be
 reviewed and tested without external services. PostgreSQL, Redis, and webhook
 workers are designed but deferred until the contract and invariants are proven.
 ADRs live in `docs/adr/`.
@@ -157,6 +163,11 @@ verification report, see:
 - `docs/spec-driven/implementation-plan.md`
 - `docs/spec-driven/verification-report.md`
 - `docs/runtime.md`
+- `docs/architecture/ports-and-adapters.md`
+- `docs/architecture/go-architecture.md`
+- `docs/architecture/module-boundaries.md`
+- `docs/architecture/dependency-rule.md`
+- `docs/architecture/testing-strategy.md`
 - `docs/middleware-chain.md`
 - `docs/production-readiness.md`
 - `docs/kubernetes.md`
@@ -232,7 +243,7 @@ backlog.
 
 Next engineering steps:
 
-- implement PostgreSQL repository and Redis-backed distributed limits/idempotency
+- implement PostgreSQL adapter and Redis-backed distributed limits/idempotency
 - add durable webhook worker with retries and dead-letter handling
 - run k6 benchmarks against Docker Compose and store measured p50/p95/p99
 - wire OpenTelemetry exporter to a collector

@@ -21,13 +21,14 @@ go test -bench=. -benchmem ./internal/httpapi
 
 ## Current measured baseline
 
-The Go native benchmark was measured locally on 2026-05-30 using Go 1.26.3
-darwin/arm64 against the in-process Gin router.
+The Go native benchmark was re-measured locally on 2026-05-31 using Go 1.26.3
+darwin/arm64 against the in-process Gin router after the use-case/ports
+refactor. Historical raw outputs live under `benchmarks/results/`.
 
 | Scenario | p50 | p95 | p99 | Throughput | Error rate | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | HTTP balance read loop | 0.341 ms | 0.534 ms | 0.740 ms | 2501.52 rps | 0.0% | Local loopback API on port 18080. |
-| `BenchmarkGetBalanceRequest` | n/a | n/a | n/a | 11691 ns/op | 0.0% | In-process benchmark: 10881 B/op, 85 allocs/op. |
+| `BenchmarkGetBalanceRequest` | n/a | n/a | n/a | 10853 ns/op | 0.0% | In-process benchmark: 11607 B/op, 96 allocs/op. |
 
 ## Bottleneck hypothesis
 

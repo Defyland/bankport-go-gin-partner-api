@@ -16,9 +16,12 @@ authenticated partners can only read and mutate their own accounts.
 ## 3. Architecture
 
 The system is a Go modular monolith using Gin for versioned routes and explicit
-middleware chains. Domain types stay framework-independent under `internal/`.
-The current repository is an in-memory sandbox; production persistence is
-designed around PostgreSQL and Redis.
+middleware chains, but Gin is only the primary HTTP adapter. Application use
+cases in `internal/usecase` orchestrate financial commands, audit evidence,
+webhook queue metrics, and ports. Domain types stay framework-independent under
+`internal/domain`. The current secondary adapter is an in-memory sandbox;
+production persistence is designed around PostgreSQL and Redis adapters behind
+the same ports.
 
 ## 4. Key Trade-offs
 
@@ -81,9 +84,10 @@ the partner API contract is proven.
 
 ## 13. Maintainability
 
-Module boundaries are explicit: config, domain, store, middleware, HTTP API,
-observability, and webhook signing. Tests read like business controls instead
-of implementation details.
+Module boundaries are explicit: config, use cases, domain, store, middleware,
+HTTP API, observability, and webhook signing. Domain tests cover invariants,
+use-case tests run with fake adapters, and adapter tests verify HTTP,
+middleware, store, CLI, and signing behavior.
 
 ## 14. Product Decisions
 
@@ -92,6 +96,6 @@ double-charge, correlation IDs for support, and deterministic sandbox scenarios.
 
 ## 15. What I Would Do Next
 
-Implement PostgreSQL and Redis adapters behind the current repository and
+Implement PostgreSQL and Redis adapters behind the current use-case ports and
 middleware interfaces, then add a durable webhook worker with retry and
 dead-letter semantics.

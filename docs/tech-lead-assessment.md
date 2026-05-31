@@ -35,11 +35,12 @@ next moves that would make the repository closer to production-ready.
 | Malformed env values fell back to defaults. | Silent fallback hides deployment mistakes and makes production behavior depend on typo-prone config. | Config loading now records parse errors and startup validation rejects malformed port, duration, bool, integer, and log-level values. |
 | Sandbox ID generation panicked when the entropy reader failed. | A rare OS entropy failure should not crash a reference API for non-secret IDs. | Added a hashed time/counter fallback and regression test while keeping real secrets environment-backed and validated. |
 | Request bodies were read without a configured size cap. | An attacker could force memory pressure before JSON validation. | Added `MAX_REQUEST_BODY_BYTES`, `http.MaxBytesReader`, 413 error mapping, and API coverage. |
-| Repository methods ignored canceled request contexts. | Timeouts should stop work before financial state changes, not only decorate the request. | Added context checks before reads/writes and a canceled-write regression test. |
+| Store adapter methods ignored canceled request contexts. | Timeouts should stop work before financial state changes, not only decorate the request. | Added context checks before reads/writes and a canceled-write regression test. |
 | Request ID entropy fallback returned a constant value. | Duplicate request IDs make incident correlation and audit reconstruction unreliable exactly when the runtime is already degraded. | Added hashed time/counter fallback and regression coverage for distinct fallback request IDs. |
 | Metrics and traces could use raw unmatched paths. | High-cardinality path labels make dashboards and tracing noisier under malformed traffic. | Route labels now fall back to `unmatched`, and account routes are tested for route-pattern labels. |
 | Runtime diagnostics were not explicit enough for an enterprise API review. | Reviewers expect runtime metadata, opt-in pprof, and a documented lifecycle story. | Added canonical `bankport-api`, shared boot package, startup runtime fields, optional pprof, and `docs/runtime.md`. |
 | Middleware ordering was implicit in code only. | A Gin/API-platform challenge should teach why auth, rate limit, scope, and idempotency are ordered the way they are. | Added `docs/middleware-chain.md` mapping global and `/v1` chains to test evidence. |
+| Handler/use-case boundaries were too implicit. | If handlers own audit, metrics, signing, and store orchestration, the repo reads like Gin-driven MVC instead of a testable API platform. | Added `internal/usecase` with small consumed ports, moved application orchestration behind use cases, kept Gin handlers at parse/call/map responsibility, and added fake-adapter use-case tests plus architecture docs. |
 | Operator/developer CLI was missing. | API products need inspectability and DX beyond curl examples. | Added `bankportctl` for app listing, rate-limit inspection, and sandbox usage reports, plus tests and distribution docs. |
 | Webhook signatures used only the root signing key. | Endpoint-specific signing material is closer to production rotation and blast-radius expectations. | Signatures now derive per-endpoint material from the root signing key and endpoint secret ID. |
 | Observability had dashboards but no alert rules. | A reviewer should see how operators know when to act, not only where charts live. | Added Prometheus alert rules and an observability subsystem doc. |
@@ -48,7 +49,7 @@ next moves that would make the repository closer to production-ready.
 
 ## What I Would Prioritize Next
 
-1. Implement the PostgreSQL repository with transaction tests around account
+1. Implement the PostgreSQL adapter with transaction tests around account
    debits, idempotency unique constraints, outbox insert, and cumulative refund
    guarded updates.
 2. Add Redis-backed distributed rate limiting and shared idempotency
@@ -65,5 +66,5 @@ BankPort is strongest when described as a production-shaped partner API sandbox:
 it proves product thinking, domain safety, operational controls, and explicit
 trade-offs without pretending that fake adapters are real banking integrations.
 That honesty is a senior signal. The next strongest signal would be replacing
-the in-memory repository with PostgreSQL/Redis adapters while preserving the
-existing tests and public API contract.
+the in-memory adapter with PostgreSQL/Redis adapters behind the current ports
+while preserving the existing use-case tests and public API contract.

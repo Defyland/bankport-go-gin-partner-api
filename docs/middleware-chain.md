@@ -1,7 +1,8 @@
 # Middleware Chain
 
 BankPort keeps the Gin chain explicit because the framework and API-platform
-behavior are part of the challenge evidence.
+behavior are part of the challenge evidence. The chain is still an edge adapter:
+it enforces transport policies before a thin handler calls `internal/usecase`.
 
 ## Global Chain
 
@@ -12,7 +13,7 @@ Order matters:
 | 1 | `gin.Recovery` | Convert panics to HTTP 500 and keep the process alive. | Gin recovery response. |
 | 2 | `RequestIdentity` | Normalize or generate request/correlation IDs and echo response headers. | Invalid caller IDs are replaced, not trusted. |
 | 3 | `RequestBodyLimit` | Apply `http.MaxBytesReader` before JSON binding. | `413 request_body_too_large`. |
-| 4 | `Timeout` | Attach request-scoped context with `REQUEST_TIMEOUT`. | Downstream repository methods observe cancellation. |
+| 4 | `Timeout` | Attach request-scoped context with `REQUEST_TIMEOUT`. | Downstream use cases and adapter methods observe cancellation. |
 | 5 | `Tracing` | Create OpenTelemetry span with route, status, request ID, and correlation ID. | Records 5xx as span errors. |
 | 6 | `StructuredLogger` | Emit JSON request log with route, status, partner, app, and identity fields. | Always logs after handler execution. |
 | 7 | `Metrics` | Observe Prometheus HTTP counters/histograms using route patterns. | Avoids raw-account-ID label cardinality. |
@@ -42,6 +43,9 @@ All `/v1` routes use:
 
 Financial write routes use idempotency after scope checks so unauthorized
 requests do not create idempotency records.
+
+The middleware pipeline owns HTTP replay/rate-limit mechanics. Use cases own
+application orchestration after those edge policies pass.
 
 ## Route Groups
 

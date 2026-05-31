@@ -1,0 +1,7 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/allanflavio/bankport-go-gin-partner-api/internal/httpapi
+cpu: Apple M1 Max
+BenchmarkGetBalanceRequest-10    	  102674	     10853 ns/op	   11607 B/op	      96 allocs/op
+PASS
+ok  	github.com/allanflavio/bankport-go-gin-partner-api/internal/httpapi	1.545s

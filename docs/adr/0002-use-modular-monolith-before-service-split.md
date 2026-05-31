@@ -19,7 +19,7 @@ would introduce network failure modes before the product contract is stable.
 ## Decision
 
 Use one Go API process with internal module boundaries. Keep domain types and
-repository behavior independent from Gin, but keep the deployable unit simple.
+adapter behavior independent from Gin, but keep the deployable unit simple.
 
 ## Consequences
 

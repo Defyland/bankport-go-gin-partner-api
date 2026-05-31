@@ -13,6 +13,7 @@ match each other.
 | --- | --- |
 | Spec-driven docs | `docs/spec-driven/senior-readiness-spec.md`, `docs/spec-driven/implementation-plan.md`, `docs/spec-driven/verification-report.md` |
 | Technical assessment | `docs/tech-lead-assessment.md`, `README.md` |
+| Architecture boundaries | `internal/usecase/service.go`, `internal/httpapi/router.go`, `docs/architecture/ports-and-adapters.md`, `docs/architecture/go-architecture.md`, `docs/architecture/module-boundaries.md`, `docs/architecture/dependency-rule.md`, `docs/architecture/testing-strategy.md` |
 | Domain correctness | `internal/store/memory.go`, `internal/store/memory_test.go`, `db/migrations/001_init.sql`, `docs/domain/invariants.md`, `docs/scalability.md`, `docs/engineering-case-study.md` |
 | Operational safeguards | `cmd/api/main.go`, `internal/config/config.go`, `internal/config/config_test.go`, `internal/httpapi/router.go`, `internal/httpapi/router_test.go`, `internal/httpapi/middleware/idempotency.go`, `internal/httpapi/middleware/idempotency_test.go`, `internal/httpapi/middleware/rate_limit.go`, `internal/httpapi/middleware/rate_limit_test.go`, `internal/httpapi/middleware/request.go`, `internal/httpapi/middleware/context.go` |
 | Observability | `docs/architecture/observability.md`, `deployments/prometheus/alerts.yml`, `deployments/prometheus/prometheus.yml`, `docker-compose.yml` |
@@ -32,10 +33,11 @@ match each other.
 | Concurrent requests with the same idempotency key cannot execute the financial handler twice. | Add in-flight idempotency reservation, wait-and-replay behavior, and a concurrent middleware regression test. |
 | Production mode fails closed when secrets or sandbox API keys are still defaults. | Add `Config.Validate`, startup validation, and production config tests. |
 | Oversized JSON bodies cannot exhaust memory before validation. | Add `MAX_REQUEST_BODY_BYTES`, `http.MaxBytesReader`, 413 error mapping, and API test coverage. |
-| Request cancellation is honored before financial mutations. | Check request context before repository reads/writes and test canceled Pix transfer behavior. |
+| Request cancellation is honored before financial mutations. | Check request context before adapter reads/writes and test canceled Pix transfer behavior. |
 | Observability avoids path-parameter cardinality. | Use route patterns for metrics/traces and test account IDs are not emitted as route labels. |
 | Webhook signatures are endpoint-specific. | Derive endpoint signing material from the root signing key and endpoint secret ID; add regression coverage. |
 | Verification is auditable. | Record exact commands and results in `verification-report.md`. |
+| BankPort is visibly not MVC or Gin-driven architecture. | Move application orchestration behind `internal/usecase`, define consumed ports there, keep handlers thin, and add architecture docs plus static boundary evidence. |
 
 ## Verification Commands
 
@@ -56,7 +58,7 @@ docker compose config
 ## Risks
 
 - Docker daemon may be unavailable locally; CI still validates Docker build.
-- The in-memory repository proves contract and invariants but is not durable.
+- The in-memory adapter proves contract and invariants but is not durable.
 - In-process idempotency single-flight prevents duplicate execution in this
   sandbox; multi-instance production deployments must move the reservation to a
   shared transactional store.
@@ -66,7 +68,7 @@ docker compose config
 
 ## Deferred Work
 
-- PostgreSQL repository adapter and migrations runner.
+- PostgreSQL adapter and migrations runner.
 - Redis-backed distributed rate limits and shared idempotency reservation/cache.
 - Durable webhook worker with retry queue, DLQ, replay endpoint, and queue-depth
   metric.

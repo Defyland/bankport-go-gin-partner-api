@@ -36,4 +36,4 @@ Negative:
 
 - refund acceptance now depends on original transaction state
 - production writes must coordinate on the original transaction row
-- concurrency tests become mandatory before replacing the sandbox repository
+- concurrency tests become mandatory before replacing the sandbox adapter
