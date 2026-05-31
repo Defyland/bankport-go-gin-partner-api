@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateRejectsProductionDefaults(t *testing.T) {
 	t.Setenv("BANKPORT_ENV", "production")
@@ -33,5 +36,32 @@ func TestValidateRejectsInvalidOperationalLimits(t *testing.T) {
 
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("expected invalid max request body size to be rejected")
+	}
+}
+
+func TestValidateRejectsMalformedEnvironmentValues(t *testing.T) {
+	t.Setenv("PORT", "eighty")
+	t.Setenv("LOG_LEVEL", "verbose")
+	t.Setenv("REQUEST_TIMEOUT", "fast")
+	t.Setenv("READINESS_ENABLED", "sometimes")
+	t.Setenv("RATE_LIMIT_PER_MINUTE", "many")
+	t.Setenv("MAX_REQUEST_BODY_BYTES", "huge")
+
+	cfg := Load()
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("expected malformed environment values to be rejected")
+	}
+	for _, expected := range []string{
+		"PORT",
+		"LOG_LEVEL",
+		"REQUEST_TIMEOUT",
+		"READINESS_ENABLED",
+		"RATE_LIMIT_PER_MINUTE",
+		"MAX_REQUEST_BODY_BYTES",
+	} {
+		if !strings.Contains(err.Error(), expected) {
+			t.Fatalf("expected validation error to mention %s, got %v", expected, err)
+		}
 	}
 }

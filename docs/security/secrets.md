@@ -16,6 +16,8 @@
 - Never commit production API keys or webhook signing keys.
 - `BANKPORT_ENV=production` must fail startup unless the API-key pepper,
   webhook signing key, and seeded API keys are replaced with non-default values.
+- Malformed operational environment values must fail startup validation instead
+  of silently falling back to defaults.
 - Store only peppered API-key HMAC hashes in production persistence.
 - Rotate `API_KEY_HASH_PEPPER` through a dual-read migration: write new hashes
   with the new pepper, accept old hashes during migration, then remove the old

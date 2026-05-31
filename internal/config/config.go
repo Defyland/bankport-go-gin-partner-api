@@ -33,30 +33,38 @@ type Config struct {
 	FullAccessAPIKey    string
 	ReadOnlyAPIKey      string
 	OtherPartnerAPIKey  string
+
+	loadErrors []error
 }
 
 func Load() Config {
-	return Config{
+	loader := envLoader{}
+	cfg := Config{
 		Environment:         env("BANKPORT_ENV", "development"),
-		Port:                env("PORT", "8080"),
+		Port:                loader.string("PORT", "8080"),
 		ServiceName:         env("OTEL_SERVICE_NAME", "bankport-partner-api"),
-		LogLevel:            parseLogLevel(env("LOG_LEVEL", "info")),
-		RequestTimeout:      envDuration("REQUEST_TIMEOUT", 3*time.Second),
-		ShutdownTimeout:     envDuration("SHUTDOWN_TIMEOUT", 8*time.Second),
-		IdempotencyTTL:      envDuration("IDEMPOTENCY_TTL", 24*time.Hour),
-		ReadinessEnabled:    envBool("READINESS_ENABLED", true),
-		DefaultRateLimitRPM: envInt("RATE_LIMIT_PER_MINUTE", 120),
-		MaxRequestBodyBytes: envInt64("MAX_REQUEST_BODY_BYTES", 1<<20),
+		LogLevel:            loader.logLevel("LOG_LEVEL", slog.LevelInfo),
+		RequestTimeout:      loader.duration("REQUEST_TIMEOUT", 3*time.Second),
+		ShutdownTimeout:     loader.duration("SHUTDOWN_TIMEOUT", 8*time.Second),
+		IdempotencyTTL:      loader.duration("IDEMPOTENCY_TTL", 24*time.Hour),
+		ReadinessEnabled:    loader.bool("READINESS_ENABLED", true),
+		DefaultRateLimitRPM: loader.int("RATE_LIMIT_PER_MINUTE", 120),
+		MaxRequestBodyBytes: loader.int64("MAX_REQUEST_BODY_BYTES", 1<<20),
 		APIKeyHashPepper:    env("API_KEY_HASH_PEPPER", defaultAPIKeyHashPepper),
 		WebhookSigningKey:   env("WEBHOOK_SIGNING_KEY", defaultWebhookSigningKey),
 		FullAccessAPIKey:    env("BANKPORT_FULL_ACCESS_API_KEY", defaultFullAccessAPIKey),
 		ReadOnlyAPIKey:      env("BANKPORT_READONLY_API_KEY", defaultReadOnlyAPIKey),
 		OtherPartnerAPIKey:  env("BANKPORT_OTHER_PARTNER_API_KEY", defaultOtherPartnerKey),
 	}
+	cfg.loadErrors = loader.errors
+	return cfg
 }
 
 func (c Config) Validate() error {
-	var errs []error
+	errs := append([]error(nil), c.loadErrors...)
+	if !validPort(c.Port) {
+		errs = append(errs, errors.New("PORT must be an integer between 1 and 65535"))
+	}
 	if c.RequestTimeout <= 0 {
 		errs = append(errs, errors.New("REQUEST_TIMEOUT must be greater than zero"))
 	}
@@ -89,6 +97,79 @@ func (c Config) Validate() error {
 	return errors.Join(errs...)
 }
 
+type envLoader struct {
+	errors []error
+}
+
+func (l *envLoader) string(key, fallback string) string {
+	return env(key, fallback)
+}
+
+func (l *envLoader) int(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		l.errors = append(l.errors, invalidEnvError(key, "integer"))
+		return fallback
+	}
+	return parsed
+}
+
+func (l *envLoader) int64(key string, fallback int64) int64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		l.errors = append(l.errors, invalidEnvError(key, "integer"))
+		return fallback
+	}
+	return parsed
+}
+
+func (l *envLoader) bool(key string, fallback bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		l.errors = append(l.errors, invalidEnvError(key, "boolean"))
+		return fallback
+	}
+	return parsed
+}
+
+func (l *envLoader) duration(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		l.errors = append(l.errors, invalidEnvError(key, "duration"))
+		return fallback
+	}
+	return parsed
+}
+
+func (l *envLoader) logLevel(key string, fallback slog.Level) slog.Level {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	level, ok := parseLogLevel(value)
+	if !ok {
+		l.errors = append(l.errors, errors.New(key+" must be one of debug, info, warn, or error"))
+		return fallback
+	}
+	return level
+}
+
 func env(key, fallback string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
@@ -97,64 +178,18 @@ func env(key, fallback string) string {
 	return value
 }
 
-func envInt(key string, fallback int) int {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
-	parsed, err := strconv.Atoi(value)
-	if err != nil {
-		return fallback
-	}
-	return parsed
-}
-
-func envInt64(key string, fallback int64) int64 {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
-	parsed, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return fallback
-	}
-	return parsed
-}
-
-func envBool(key string, fallback bool) bool {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return fallback
-	}
-	return parsed
-}
-
-func envDuration(key string, fallback time.Duration) time.Duration {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
-	parsed, err := time.ParseDuration(value)
-	if err != nil {
-		return fallback
-	}
-	return parsed
-}
-
-func parseLogLevel(value string) slog.Level {
+func parseLogLevel(value string) (slog.Level, bool) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "debug":
-		return slog.LevelDebug
+		return slog.LevelDebug, true
+	case "info":
+		return slog.LevelInfo, true
 	case "warn", "warning":
-		return slog.LevelWarn
+		return slog.LevelWarn, true
 	case "error":
-		return slog.LevelError
+		return slog.LevelError, true
 	default:
-		return slog.LevelInfo
+		return slog.LevelInfo, false
 	}
 }
 
@@ -165,4 +200,13 @@ func weakSecret(value, defaultValue string) bool {
 
 func isDefaultKey(value, defaultValue string) bool {
 	return strings.TrimSpace(value) == defaultValue
+}
+
+func invalidEnvError(key, expected string) error {
+	return errors.New(key + " must be a valid " + expected)
+}
+
+func validPort(value string) bool {
+	port, err := strconv.Atoi(strings.TrimSpace(value))
+	return err == nil && port >= 1 && port <= 65535
 }
