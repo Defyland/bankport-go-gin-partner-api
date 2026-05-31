@@ -19,7 +19,7 @@ bench:
 	$(GO) test -bench=. -benchmem ./internal/httpapi
 
 run:
-	$(GO) run ./cmd/api
+	$(GO) run ./cmd/bankport-api
 
 security:
 	$(GOVULNCHECK) ./...

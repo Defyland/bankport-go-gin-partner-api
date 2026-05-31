@@ -44,6 +44,7 @@ func TestValidateRejectsMalformedEnvironmentValues(t *testing.T) {
 	t.Setenv("LOG_LEVEL", "verbose")
 	t.Setenv("REQUEST_TIMEOUT", "fast")
 	t.Setenv("READINESS_ENABLED", "sometimes")
+	t.Setenv("PPROF_ENABLED", "sometimes")
 	t.Setenv("RATE_LIMIT_PER_MINUTE", "many")
 	t.Setenv("MAX_REQUEST_BODY_BYTES", "huge")
 
@@ -57,6 +58,7 @@ func TestValidateRejectsMalformedEnvironmentValues(t *testing.T) {
 		"LOG_LEVEL",
 		"REQUEST_TIMEOUT",
 		"READINESS_ENABLED",
+		"PPROF_ENABLED",
 		"RATE_LIMIT_PER_MINUTE",
 		"MAX_REQUEST_BODY_BYTES",
 	} {

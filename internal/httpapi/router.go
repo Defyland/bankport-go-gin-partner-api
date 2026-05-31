@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -66,6 +67,9 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	router.GET("/health/live", server.live)
 	router.GET("/health/ready", server.ready)
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(deps.Metrics.Registry, promhttp.HandlerOpts{})))
+	if deps.Config.PprofEnabled {
+		registerPprof(router)
+	}
 
 	v1 := router.Group("/v1")
 	v1.Use(middleware.Authenticate(deps.Repository, deps.Metrics), middleware.RateLimit(server.rateLimiter, deps.Metrics))
@@ -79,6 +83,17 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	v1.GET("/sandbox/scenarios", middleware.RequireScopes(domain.ScopeSandboxRead), server.listSandboxScenarios)
 
 	return router
+}
+
+func registerPprof(router *gin.Engine) {
+	pprofRoutes := router.Group("/debug/pprof")
+	pprofRoutes.GET("/", gin.WrapF(pprof.Index))
+	pprofRoutes.GET("/cmdline", gin.WrapF(pprof.Cmdline))
+	pprofRoutes.GET("/profile", gin.WrapF(pprof.Profile))
+	pprofRoutes.GET("/symbol", gin.WrapF(pprof.Symbol))
+	pprofRoutes.POST("/symbol", gin.WrapF(pprof.Symbol))
+	pprofRoutes.GET("/trace", gin.WrapF(pprof.Trace))
+	pprofRoutes.GET("/:profile", gin.WrapF(pprof.Index))
 }
 
 func (s *Server) live(c *gin.Context) {

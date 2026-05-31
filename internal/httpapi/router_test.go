@@ -35,6 +35,37 @@ func TestHealthReadyAndMetrics(t *testing.T) {
 	}
 }
 
+func TestPprofDisabledByDefault(t *testing.T) {
+	router, _, _ := newTestRouter(t, 120)
+
+	response := perform(router, http.MethodGet, "/debug/pprof/", "", "")
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected pprof to be disabled by default, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestPprofEnabledByConfiguration(t *testing.T) {
+	cfg := testConfig(120)
+	cfg.PprofEnabled = true
+	repo := store.NewSeededRepository(cfg)
+	router := NewRouter(Dependencies{
+		Config:     cfg,
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Repository: repo,
+		Metrics:    observability.NewMetrics(cfg.ServiceName),
+	})
+
+	response := perform(router, http.MethodGet, "/debug/pprof/", "", "")
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected pprof index 200, got %d: %s", response.Code, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "Types of profiles available") {
+		t.Fatalf("expected pprof profile index, got %s", response.Body.String())
+	}
+}
+
 func TestRequestIdentityRejectsUnsafeCallerSuppliedIDs(t *testing.T) {
 	router, _, _ := newTestRouter(t, 120)
 

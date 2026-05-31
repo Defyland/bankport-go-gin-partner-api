@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 RUN go test ./...
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/bankport ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/bankport ./cmd/bankport-api
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

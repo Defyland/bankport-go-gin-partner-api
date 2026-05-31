@@ -26,6 +26,7 @@ type Config struct {
 	ShutdownTimeout     time.Duration
 	IdempotencyTTL      time.Duration
 	ReadinessEnabled    bool
+	PprofEnabled        bool
 	DefaultRateLimitRPM int
 	MaxRequestBodyBytes int64
 	APIKeyHashPepper    string
@@ -48,6 +49,7 @@ func Load() Config {
 		ShutdownTimeout:     loader.duration("SHUTDOWN_TIMEOUT", 8*time.Second),
 		IdempotencyTTL:      loader.duration("IDEMPOTENCY_TTL", 24*time.Hour),
 		ReadinessEnabled:    loader.bool("READINESS_ENABLED", true),
+		PprofEnabled:        loader.bool("PPROF_ENABLED", false),
 		DefaultRateLimitRPM: loader.int("RATE_LIMIT_PER_MINUTE", 120),
 		MaxRequestBodyBytes: loader.int64("MAX_REQUEST_BODY_BYTES", 1<<20),
 		APIKeyHashPepper:    env("API_KEY_HASH_PEPPER", defaultAPIKeyHashPepper),

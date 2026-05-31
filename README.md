@@ -156,6 +156,7 @@ verification report, see:
 - `docs/spec-driven/senior-readiness-spec.md`
 - `docs/spec-driven/implementation-plan.md`
 - `docs/spec-driven/verification-report.md`
+- `docs/runtime.md`
 
 ## 16. How to run locally
 
@@ -168,7 +169,7 @@ Required toolchain:
 With Go:
 
 ```bash
-go run ./cmd/api
+go run ./cmd/bankport-api
 ```
 
 With Docker Compose, when the Docker daemon is running:
