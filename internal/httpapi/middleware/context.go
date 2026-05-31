@@ -2,14 +2,23 @@ package middleware
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
+	"time"
 	"unicode"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/allanflavio/bankport-go-gin-partner-api/internal/domain"
+)
+
+var (
+	requestRandomRead      = rand.Read
+	requestFallbackCounter atomic.Uint64
 )
 
 const (
@@ -71,8 +80,10 @@ func Abort(c *gin.Context, status int, code, message string, details map[string]
 
 func newRequestID(prefix string) string {
 	bytes := make([]byte, 12)
-	if _, err := rand.Read(bytes); err != nil {
-		return prefix + "_fallback"
+	if _, err := requestRandomRead(bytes); err != nil {
+		seed := fmt.Sprintf("%s:%d:%d", prefix, time.Now().UnixNano(), requestFallbackCounter.Add(1))
+		sum := sha256.Sum256([]byte(seed))
+		return prefix + "_" + hex.EncodeToString(sum[:])[:24]
 	}
 	return prefix + "_" + hex.EncodeToString(bytes)
 }
