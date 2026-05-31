@@ -16,11 +16,11 @@ import (
 
 func RequestIdentity() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		requestID := c.GetHeader("X-Request-ID")
+		requestID := trustedHeaderID(c.GetHeader("X-Request-ID"))
 		if requestID == "" {
 			requestID = newRequestID("req")
 		}
-		correlationID := c.GetHeader("X-Correlation-ID")
+		correlationID := trustedHeaderID(c.GetHeader("X-Correlation-ID"))
 		if correlationID == "" {
 			correlationID = requestID
 		}

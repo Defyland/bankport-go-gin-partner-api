@@ -25,6 +25,8 @@ domain metrics, traces, and runbook-linked alerts.
 - Is the API protecting itself with 429 responses or failing with 5xx responses?
 - Are unmatched paths grouped as `unmatched` instead of creating high-cardinality
   metrics or trace names?
+- Are caller-supplied request and correlation IDs bounded and normalized before
+  they are copied into logs, response headers, metrics context, or traces?
 
 ## Known Gaps
 

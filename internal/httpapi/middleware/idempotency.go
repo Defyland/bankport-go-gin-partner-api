@@ -48,6 +48,11 @@ const (
 	idempotencyWait
 )
 
+const (
+	minIdempotencyKeyLength = 8
+	maxIdempotencyKeyLength = 128
+)
+
 func NewIdempotencyStore() *IdempotencyStore {
 	return NewIdempotencyStoreWithTTL(24 * time.Hour)
 }
@@ -171,6 +176,13 @@ func Idempotency(store *IdempotencyStore, metrics *observability.Metrics) gin.Ha
 			Abort(c, http.StatusBadRequest, "idempotency_key_required", "Financial write requests require an Idempotency-Key header.", nil)
 			return
 		}
+		if !validIdempotencyKey(idempotencyKey) {
+			Abort(c, http.StatusBadRequest, "idempotency_key_invalid", "Idempotency-Key must be 8 to 128 characters using letters, digits, dots, underscores, or hyphens.", map[string]any{
+				"min_length": minIdempotencyKeyLength,
+				"max_length": maxIdempotencyKeyLength,
+			})
+			return
+		}
 
 		body, err := io.ReadAll(c.Request.Body)
 		if err != nil {
@@ -256,6 +268,27 @@ func replay(c *gin.Context, metrics *observability.Metrics, partnerID, routeName
 
 func cacheableIdempotencyStatus(status int) bool {
 	return status < http.StatusInternalServerError && status != http.StatusRequestTimeout
+}
+
+func validIdempotencyKey(value string) bool {
+	if len(value) < minIdempotencyKeyLength || len(value) > maxIdempotencyKeyLength {
+		return false
+	}
+	for _, char := range value {
+		switch {
+		case char >= 'a' && char <= 'z':
+			continue
+		case char >= 'A' && char <= 'Z':
+			continue
+		case char >= '0' && char <= '9':
+			continue
+		case char == '.', char == '_', char == '-':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 type captureWriter struct {

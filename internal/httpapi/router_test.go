@@ -35,6 +35,27 @@ func TestHealthReadyAndMetrics(t *testing.T) {
 	}
 }
 
+func TestRequestIdentityRejectsUnsafeCallerSuppliedIDs(t *testing.T) {
+	router, _, _ := newTestRouter(t, 120)
+
+	response := performWithHeaders(router, http.MethodGet, "/health/live", "", "", map[string]string{
+		"X-Request-ID":     strings.Repeat("x", 200),
+		"X-Correlation-ID": "corr with spaces",
+	})
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected health 200, got %d: %s", response.Code, response.Body.String())
+	}
+	requestID := response.Header().Get("X-Request-ID")
+	correlationID := response.Header().Get("X-Correlation-ID")
+	if requestID == strings.Repeat("x", 200) || requestID == "" {
+		t.Fatalf("expected unsafe request id to be replaced, got %q", requestID)
+	}
+	if correlationID != requestID {
+		t.Fatalf("expected unsafe correlation id to fall back to request id, got request=%q correlation=%q", requestID, correlationID)
+	}
+}
+
 func TestRequiresAuthentication(t *testing.T) {
 	router, _, _ := newTestRouter(t, 120)
 

@@ -49,8 +49,9 @@ Successful response:
 
 ## Idempotency replay
 
-Retrying the same method, route, idempotency key, and body returns the cached
-status and body with:
+Idempotency keys must be 8 to 128 characters and may contain letters, digits,
+dots, underscores, and hyphens. Retrying the same method, route, idempotency
+key, and body returns the cached status and body with:
 
 ```text
 Idempotency-Replayed: true

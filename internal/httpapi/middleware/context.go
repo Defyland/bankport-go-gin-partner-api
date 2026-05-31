@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"strings"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -74,6 +75,24 @@ func newRequestID(prefix string) string {
 		return prefix + "_fallback"
 	}
 	return prefix + "_" + hex.EncodeToString(bytes)
+}
+
+func trustedHeaderID(value string) string {
+	value = strings.TrimSpace(value)
+	if len(value) == 0 || len(value) > 128 {
+		return ""
+	}
+	for _, char := range value {
+		switch {
+		case unicode.IsLetter(char), unicode.IsDigit(char):
+			continue
+		case char == '_', char == '-', char == '.', char == ':':
+			continue
+		default:
+			return ""
+		}
+	}
+	return value
 }
 
 func bearerToken(header string) string {

@@ -24,6 +24,7 @@ All application errors use the same envelope:
 | `invalid_api_key` | 401 | API key was not recognized. |
 | `insufficient_scope` | 403 | API key lacks the route scope. |
 | `idempotency_key_required` | 400 | Financial write omitted `Idempotency-Key`. |
+| `idempotency_key_invalid` | 400 | `Idempotency-Key` does not match accepted length or character rules. |
 | `idempotency_conflict` | 409 | Same key was reused with a different body. |
 | `idempotency_original_failed` | 409 | A duplicate request waited for an in-flight request that did not produce a replayable response. |
 | `idempotency_wait_timeout` | 408 | A duplicate request timed out while waiting for the original request with the same key. |

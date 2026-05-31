@@ -92,6 +92,36 @@ func TestIdempotencyConcurrentSameKeyRunsHandlerOnce(t *testing.T) {
 	}
 }
 
+func TestIdempotencyRejectsMalformedKey(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	store := NewIdempotencyStoreWithTTL(time.Minute)
+	metrics := observability.NewMetrics("bankport_idempotency_key_test")
+	var handlerCalls atomic.Int32
+
+	router := gin.New()
+	router.Use(RequestIdentity())
+	router.Use(func(c *gin.Context) {
+		c.Set(PartnerKey, domain.Partner{ID: "partner_test", DeveloperAppID: "app_test"})
+		c.Next()
+	})
+	router.POST("/financial-writes", Idempotency(store, metrics), func(c *gin.Context) {
+		handlerCalls.Add(1)
+		c.JSON(http.StatusAccepted, gin.H{"accepted": true})
+	})
+
+	response := performIdempotencyRequest(router, "bad key", `{"amount_cents":100}`)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected malformed key 400, got %d: %s", response.Code, response.Body.String())
+	}
+	if !bytes.Contains(response.Body.Bytes(), []byte("idempotency_key_invalid")) {
+		t.Fatalf("expected invalid key error, got %s", response.Body.String())
+	}
+	if handlerCalls.Load() != 0 {
+		t.Fatalf("expected invalid key not to reach handler, ran %d times", handlerCalls.Load())
+	}
+}
+
 func TestIdempotencyDoesNotCacheRequestTimeout(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	store := NewIdempotencyStoreWithTTL(time.Minute)
