@@ -43,6 +43,9 @@ jobs:
       - name: Test with race detector and coverage
         run: go test -race -coverpkg=./... -coverprofile=coverage.out ./...
 
+      - name: Build binaries
+        run: go build ./cmd/bankport-api ./cmd/bankportctl
+
       - name: Coverage summary
         run: go tool cover -func=coverage.out
 
