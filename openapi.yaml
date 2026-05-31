@@ -347,6 +347,8 @@ components:
       schema:
         type: string
         minLength: 8
+        maxLength: 128
+        pattern: "^[A-Za-z0-9._-]+$"
       example: idem_20260530_001
   responses:
     StandardError:
@@ -504,6 +506,28 @@ components:
           properties:
             code:
               type: string
+              enum:
+                - authentication_required
+                - invalid_api_key
+                - insufficient_scope
+                - idempotency_key_required
+                - idempotency_key_invalid
+                - idempotency_conflict
+                - idempotency_original_failed
+                - idempotency_wait_timeout
+                - request_body_too_large
+                - invalid_request_body
+                - invalid_json
+                - validation_failed
+                - account_not_found
+                - original_transaction_not_found
+                - insufficient_funds
+                - refund_exceeds_original
+                - request_canceled
+                - request_timeout
+                - rate_limit_exceeded
+                - not_ready
+                - internal_error
               examples: [validation_failed, insufficient_scope, rate_limit_exceeded]
             message:
               type: string

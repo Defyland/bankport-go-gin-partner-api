@@ -2,7 +2,10 @@
 
 | Module | Responsibility | Must not own |
 | --- | --- | --- |
-| `cmd/api` | process boot, HTTP server, graceful shutdown | domain rules |
+| `cmd/bankport-api` | canonical API binary entrypoint | domain rules |
+| `cmd/api` | compatibility API entrypoint | domain rules |
+| `cmd/bankportctl` | local sandbox CLI entrypoint | persistence internals |
+| `internal/app` | executable orchestration for API and CLI | domain invariants |
 | `internal/config` | environment parsing and defaults | request handling |
 | `internal/domain` | business types, validation, invariants | Gin context |
 | `internal/store` | repository behavior and seeded sandbox data | HTTP errors |

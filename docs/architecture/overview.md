@@ -15,6 +15,9 @@ without depending on Gin.
 7. Financial write routes enforce idempotency.
 8. Handlers call domain repository methods and emit events/audit evidence.
 
+See `docs/middleware-chain.md` for route groups, middleware ordering, and test
+evidence.
+
 ## Observability boundary
 
 Observability is treated as part of the architecture, not as an afterthought.
@@ -29,3 +32,7 @@ external services. PostgreSQL and Redis designs are captured in migrations and
 docs because they are the correct production backing services for consistency
 and TTL state, but introducing them before the API contract is useful would add
 debugging and setup cost.
+
+The canonical API binary is `bankport-api`; `cmd/api` remains as a compatibility
+entrypoint. `bankportctl` exposes read-only sandbox inspection commands for
+developer-app, rate-limit, and usage-report DX.

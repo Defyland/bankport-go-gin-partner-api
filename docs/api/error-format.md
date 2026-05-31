@@ -29,6 +29,8 @@ All application errors use the same envelope:
 | `idempotency_original_failed` | 409 | A duplicate request waited for an in-flight request that did not produce a replayable response. |
 | `idempotency_wait_timeout` | 408 | A duplicate request timed out while waiting for the original request with the same key. |
 | `request_body_too_large` | 413 | Request body exceeds `MAX_REQUEST_BODY_BYTES`. |
+| `invalid_request_body` | 400 | Request body could not be read. |
+| `invalid_json` | 400 | Request body was not valid JSON for the endpoint schema. |
 | `validation_failed` | 400 | Request body failed domain validation. |
 | `account_not_found` | 404 | Account does not exist for this partner. |
 | `insufficient_funds` | 422 | Account balance cannot cover the command. |
@@ -36,3 +38,5 @@ All application errors use the same envelope:
 | `request_canceled` | 408 | Request context was canceled before completion. |
 | `request_timeout` | 504 | Request exceeded the configured timeout. |
 | `rate_limit_exceeded` | 429 | Partner exceeded the route rate limit. |
+| `not_ready` | 503 | Readiness is disabled or a future dependency check fails. |
+| `internal_error` | 500 | Unexpected server-side failure. |

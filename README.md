@@ -157,6 +157,9 @@ verification report, see:
 - `docs/spec-driven/implementation-plan.md`
 - `docs/spec-driven/verification-report.md`
 - `docs/runtime.md`
+- `docs/middleware-chain.md`
+- `docs/production-readiness.md`
+- `docs/kubernetes.md`
 - `docs/cli/distribution.md`
 
 ## 16. How to run locally
