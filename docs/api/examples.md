@@ -68,3 +68,11 @@ Sandbox idempotency records expire after `IDEMPOTENCY_TTL`, which defaults to
 24 hours. The production adapter should persist the same expiry in PostgreSQL
 and use Redis only as a fast cache plus shared reservation layer, not as the
 source of truth.
+
+## Webhook event subscriptions
+
+Webhook endpoint registration accepts `*` or one of the supported event names:
+`pix.transfer.created.v1`, `payout.created.v1`, `refund.created.v1`,
+`webhook.delivery.requested.v1`, and `api.rate_limit_exceeded.v1`. Sandbox
+receivers may use `http://localhost:<port>`; non-local receivers must use HTTPS
+and cannot include URL user info.

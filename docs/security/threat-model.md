@@ -24,7 +24,7 @@
 | Request replay | idempotency keys with request-hash comparison, in-flight reservation, and wait-and-replay behavior |
 | Oversized request body | configured max body size before JSON parsing |
 | Rate-limit abuse | process-local limits in the sandbox, Redis-backed limits planned for multi-instance production, and explicit error envelope |
-| Webhook tampering | endpoint-specific HMAC signatures and delivery-attempt auditing |
+| Webhook tampering | endpoint-specific HMAC signatures, supported event allowlist, URL user-info rejection, and delivery-attempt auditing |
 | Internal adapter timeout | timeout middleware, circuit-breaker-ready adapter boundaries, and correlation IDs |
 
 ## Residual risks

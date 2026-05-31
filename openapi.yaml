@@ -753,6 +753,13 @@ components:
           minItems: 1
           items:
             type: string
+            enum:
+              - "*"
+              - pix.transfer.created.v1
+              - payout.created.v1
+              - refund.created.v1
+              - webhook.delivery.requested.v1
+              - api.rate_limit_exceeded.v1
         description:
           type: string
     WebhookEndpoint:
@@ -769,6 +776,13 @@ components:
           type: array
           items:
             type: string
+            enum:
+              - "*"
+              - pix.transfer.created.v1
+              - payout.created.v1
+              - refund.created.v1
+              - webhook.delivery.requested.v1
+              - api.rate_limit_exceeded.v1
         description:
           type: string
         secret_id:

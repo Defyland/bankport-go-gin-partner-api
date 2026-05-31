@@ -18,6 +18,14 @@ const (
 	ScopeSandboxRead   = "sandbox:read"
 )
 
+var supportedWebhookEventTypes = map[string]bool{
+	"pix.transfer.created.v1":       true,
+	"payout.created.v1":             true,
+	"refund.created.v1":             true,
+	"webhook.delivery.requested.v1": true,
+	"api.rate_limit_exceeded.v1":    true,
+}
+
 var (
 	ErrAccountNotFound       = errors.New("account not found")
 	ErrInsufficientFunds     = errors.New("insufficient available balance")
@@ -188,15 +196,22 @@ func (r WebhookEndpointRequest) Validate() error {
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return fieldError("url", "must be an absolute URL")
 	}
-	if parsed.Scheme != "https" && parsed.Host != "localhost" {
+	if parsed.User != nil {
+		return fieldError("url", "must not include user info")
+	}
+	if parsed.Scheme != "https" && !isLocalWebhookHost(parsed.Hostname()) {
 		return fieldError("url", "must use https outside localhost")
 	}
 	if len(r.EventTypes) == 0 {
 		return fieldError("event_types", "must contain at least one event type")
 	}
 	for _, eventType := range r.EventTypes {
-		if strings.TrimSpace(eventType) == "" {
+		normalized := strings.TrimSpace(eventType)
+		if normalized == "" {
 			return fieldError("event_types", "must not contain blank values")
+		}
+		if normalized != "*" && !supportedWebhookEventTypes[normalized] {
+			return fieldError("event_types", "contains unsupported event type "+normalized)
 		}
 	}
 	return nil
@@ -256,6 +271,15 @@ type SandboxScenario struct {
 
 func normalizeCurrency(currency string) string {
 	return strings.ToUpper(strings.TrimSpace(currency))
+}
+
+func isLocalWebhookHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		return false
+	}
 }
 
 func fieldError(field, message string) error {

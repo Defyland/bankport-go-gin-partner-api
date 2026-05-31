@@ -41,3 +41,36 @@ func TestWebhookEndpointRequiresHTTPSOutsideLocalhost(t *testing.T) {
 		t.Fatalf("expected validation error, got %v", err)
 	}
 }
+
+func TestWebhookEndpointAllowsLocalhostWithPort(t *testing.T) {
+	request := WebhookEndpointRequest{
+		URL:        "http://localhost:3000/webhooks",
+		EventTypes: []string{"pix.transfer.created.v1"},
+	}
+
+	if err := request.Validate(); err != nil {
+		t.Fatalf("expected localhost webhook receiver to be valid in sandbox: %v", err)
+	}
+}
+
+func TestWebhookEndpointRejectsUnsupportedEventType(t *testing.T) {
+	request := WebhookEndpointRequest{
+		URL:        "https://partner.example.com/webhooks",
+		EventTypes: []string{"unknown.event.v1"},
+	}
+
+	if err := request.Validate(); !errors.Is(err, ErrValidation) {
+		t.Fatalf("expected unsupported event type validation error, got %v", err)
+	}
+}
+
+func TestWebhookEndpointRejectsURLUserInfo(t *testing.T) {
+	request := WebhookEndpointRequest{
+		URL:        "https://user:pass@partner.example.com/webhooks",
+		EventTypes: []string{"pix.transfer.created.v1"},
+	}
+
+	if err := request.Validate(); !errors.Is(err, ErrValidation) {
+		t.Fatalf("expected userinfo validation error, got %v", err)
+	}
+}
