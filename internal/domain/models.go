@@ -18,6 +18,12 @@ const (
 	ScopeSandboxRead   = "sandbox:read"
 )
 
+const (
+	maxDescriptionLength = 280
+	maxPixKeyLength      = 140
+	maxReasonLength      = 280
+)
+
 var supportedWebhookEventTypes = map[string]bool{
 	"pix.transfer.created.v1":       true,
 	"payout.created.v1":             true,
@@ -87,6 +93,12 @@ func (r PixTransferRequest) Validate() error {
 	if strings.TrimSpace(r.PixKey) == "" {
 		return fieldError("pix_key", "is required")
 	}
+	if len(strings.TrimSpace(r.PixKey)) > maxPixKeyLength {
+		return fieldError("pix_key", "must be at most 140 characters")
+	}
+	if len(strings.TrimSpace(r.Description)) > maxDescriptionLength {
+		return fieldError("description", "must be at most 280 characters")
+	}
 	return nil
 }
 
@@ -123,11 +135,20 @@ func (r PayoutRequest) Validate() error {
 	if normalizeCurrency(r.Currency) != "BRL" {
 		return fieldError("currency", "must be BRL")
 	}
-	if strings.TrimSpace(r.BankCode) == "" || strings.TrimSpace(r.Branch) == "" || strings.TrimSpace(r.AccountNumber) == "" {
-		return fieldError("bank_account", "bank_code, branch, and account_number are required")
+	if !fixedDigits(r.BankCode, 3) {
+		return fieldError("bank_code", "must contain exactly 3 digits")
 	}
-	if strings.TrimSpace(r.Document) == "" {
-		return fieldError("document", "is required")
+	if !digitsBetween(r.Branch, 1, 6) {
+		return fieldError("branch", "must contain 1 to 6 digits")
+	}
+	if !accountNumber(r.AccountNumber) {
+		return fieldError("account_number", "must contain 1 to 20 digits, hyphens, or uppercase X")
+	}
+	if !documentNumber(r.Document) {
+		return fieldError("document", "must contain 11 or 14 digits")
+	}
+	if len(strings.TrimSpace(r.Description)) > maxDescriptionLength {
+		return fieldError("description", "must be at most 280 characters")
 	}
 	return nil
 }
@@ -170,6 +191,9 @@ func (r RefundRequest) Validate() error {
 	if strings.TrimSpace(r.Reason) == "" {
 		return fieldError("reason", "is required")
 	}
+	if len(strings.TrimSpace(r.Reason)) > maxReasonLength {
+		return fieldError("reason", "must be at most 280 characters")
+	}
 	return nil
 }
 
@@ -204,6 +228,9 @@ func (r WebhookEndpointRequest) Validate() error {
 	}
 	if len(r.EventTypes) == 0 {
 		return fieldError("event_types", "must contain at least one event type")
+	}
+	if len(strings.TrimSpace(r.Description)) > maxDescriptionLength {
+		return fieldError("description", "must be at most 280 characters")
 	}
 	for _, eventType := range r.EventTypes {
 		normalized := strings.TrimSpace(eventType)
@@ -280,6 +307,50 @@ func isLocalWebhookHost(host string) bool {
 	default:
 		return false
 	}
+}
+
+func fixedDigits(value string, length int) bool {
+	value = strings.TrimSpace(value)
+	return len(value) == length && onlyDigits(value)
+}
+
+func digitsBetween(value string, minLength, maxLength int) bool {
+	value = strings.TrimSpace(value)
+	return len(value) >= minLength && len(value) <= maxLength && onlyDigits(value)
+}
+
+func documentNumber(value string) bool {
+	value = strings.TrimSpace(value)
+	return (len(value) == 11 || len(value) == 14) && onlyDigits(value)
+}
+
+func onlyDigits(value string) bool {
+	for _, char := range value {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return value != ""
+}
+
+func accountNumber(value string) bool {
+	value = strings.TrimSpace(value)
+	if len(value) < 1 || len(value) > 20 {
+		return false
+	}
+	for _, char := range value {
+		switch {
+		case char >= '0' && char <= '9':
+			continue
+		case char == '-':
+			continue
+		case char == 'X':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func fieldError(field, message string) error {

@@ -14,6 +14,8 @@ The implemented tests cover the highest-risk invariants:
 | Cumulative refunds cannot exceed the original transaction amount. | Refunded amount tracked per original transfer; production SQL guard documented in migration. | `TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount` |
 | Concurrent writes cannot overspend or over-refund. | Repository lock in sandbox; production requires row-level guarded updates. | `TestConcurrentPixTransfersDoNotOverspendAccount`, `TestConcurrentRefundsDoNotExceedOriginalAmount` |
 | Webhook receivers outside localhost must use HTTPS. | Domain validation | `TestWebhookEndpointRequiresHTTPSOutsideLocalhost` |
+| Webhook subscriptions must use supported event names or `*`. | Domain validation and OpenAPI enum | `TestWebhookEndpointRejectsUnsupportedEventType` |
+| Financial request fields must be bounded and shape-checked before mutation. | Domain validation and OpenAPI constraints | `TestPixTransferRequestRejectsOversizedPixKey`, `TestPayoutRequestValidatesBankAccountShape`, `TestRefundRequestRejectsOversizedReason` |
 | Rate limits produce 429 and retry metadata. | Rate-limit middleware | `TestRateLimitExceeded` |
 | Idempotency records expire instead of growing without bound. | TTL-backed store cleanup. | `TestIdempotencyStoreExpiresRecords` |
 | Rate-limit windows expire instead of growing without bound. | Window pruning in limiter. | `TestRateLimiterPrunesExpiredWindows` |

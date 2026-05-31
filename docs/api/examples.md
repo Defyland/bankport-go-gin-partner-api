@@ -47,6 +47,11 @@ Successful response:
 }
 ```
 
+Financial write fields are intentionally bounded before mutation. Pix keys are
+limited to 140 characters, descriptions and refund reasons to 280 characters,
+bank codes to 3 digits, branches to 1-6 digits, account numbers to 1-20
+digits/hyphens/uppercase `X`, and documents to 11 or 14 digits.
+
 ## Idempotency replay
 
 Idempotency keys must be 8 to 128 characters and may contain letters, digits,

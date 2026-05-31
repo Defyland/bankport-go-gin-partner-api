@@ -99,6 +99,7 @@ Compose validation, and Docker build validation in CI.
 | Implementation plan maps changes to acceptance criteria. | `docs/spec-driven/implementation-plan.md` | Done | Plan records scope and verification commands. |
 | Verification report records actual commands and results. | `docs/spec-driven/verification-report.md` | Done | Updated after local validation. |
 | Domain model is explicit. | `docs/domain/glossary.md`, `docs/domain/bounded-contexts.md`, `docs/domain/aggregates.md`, `docs/domain/invariants.md`, `docs/domain/state-machines.md` | Done | Invariants link to tests. |
+| Public financial inputs have bounded, documented shape. | `internal/domain/models.go`, `internal/domain/models_test.go`, `openapi.yaml`, `docs/domain/invariants.md` | Done | Money movement inputs reject oversized Pix keys/reasons/descriptions and malformed payout bank/account/document fields before mutation. |
 | Cumulative refund rule is enforced. | `internal/store/memory.go`, `internal/store/memory_test.go`, `db/migrations/001_init.sql` | Done | Prevents partial refunds from exceeding original Pix transfer amount. |
 | API is versioned, authenticated, scoped, and documented. | `openapi.yaml`, `docs/api/examples.md`, `docs/api/error-format.md`, `internal/httpapi/router.go` | Done | Financial writes require idempotency keys. |
 | Data model names constraints, indexes, and transaction assumptions. | `db/migrations/001_init.sql`, `docs/scalability.md`, `docs/engineering-case-study.md` | Done | Production adapters still planned, but schema is concrete. |

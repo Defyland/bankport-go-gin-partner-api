@@ -586,8 +586,10 @@ components:
           const: BRL
         pix_key:
           type: string
+          maxLength: 140
         description:
           type: string
+          maxLength: 280
     PixTransfer:
       type: object
       required: [id, partner_id, source_account_id, amount_cents, currency, pix_key, status, created_at]
@@ -641,14 +643,19 @@ components:
           const: BRL
         bank_code:
           type: string
+          pattern: "^[0-9]{3}$"
         branch:
           type: string
+          pattern: "^[0-9]{1,6}$"
         account_number:
           type: string
+          pattern: "^[0-9X-]{1,20}$"
         document:
           type: string
+          pattern: "^([0-9]{11}|[0-9]{14})$"
         description:
           type: string
+          maxLength: 280
     Payout:
       type: object
       required: [id, partner_id, account_id, amount_cents, currency, status, bank_code, branch, account_number, created_at]
@@ -705,6 +712,7 @@ components:
           const: BRL
         reason:
           type: string
+          maxLength: 280
     Refund:
       type: object
       required: [id, partner_id, account_id, original_transaction_id, amount_cents, currency, status, reason, created_at]
@@ -762,6 +770,7 @@ components:
               - api.rate_limit_exceeded.v1
         description:
           type: string
+          maxLength: 280
     WebhookEndpoint:
       type: object
       required: [id, partner_id, url, event_types, secret_id, created_at]
