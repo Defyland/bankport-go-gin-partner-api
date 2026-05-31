@@ -92,6 +92,40 @@ func TestIdempotencyConcurrentSameKeyRunsHandlerOnce(t *testing.T) {
 	}
 }
 
+func TestIdempotencyDoesNotCacheRequestTimeout(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	store := NewIdempotencyStoreWithTTL(time.Minute)
+	metrics := observability.NewMetrics("bankport_idempotency_timeout_test")
+	var handlerCalls atomic.Int32
+
+	router := gin.New()
+	router.Use(RequestIdentity())
+	router.Use(func(c *gin.Context) {
+		c.Set(PartnerKey, domain.Partner{ID: "partner_test", DeveloperAppID: "app_test"})
+		c.Next()
+	})
+	router.POST("/financial-writes", Idempotency(store, metrics), func(c *gin.Context) {
+		handlerCalls.Add(1)
+		Abort(c, http.StatusRequestTimeout, "request_canceled", "The request was canceled before it could complete.", nil)
+	})
+
+	first := performIdempotencyRequest(router, "timeout-key", `{"amount_cents":100}`)
+	second := performIdempotencyRequest(router, "timeout-key", `{"amount_cents":100}`)
+
+	if first.Code != http.StatusRequestTimeout {
+		t.Fatalf("expected first request 408, got %d: %s", first.Code, first.Body.String())
+	}
+	if second.Code != http.StatusRequestTimeout {
+		t.Fatalf("expected second request 408, got %d: %s", second.Code, second.Body.String())
+	}
+	if second.Header().Get("Idempotency-Replayed") == "true" {
+		t.Fatal("expected timeout response not to be replayed from idempotency cache")
+	}
+	if handlerCalls.Load() != 2 {
+		t.Fatalf("expected timeout response not to be cached; handler ran %d times", handlerCalls.Load())
+	}
+}
+
 func performIdempotencyRequest(router *gin.Engine, key, body string) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/financial-writes", bytes.NewBufferString(body))

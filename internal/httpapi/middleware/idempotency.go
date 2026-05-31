@@ -220,7 +220,7 @@ func Idempotency(store *IdempotencyStore, metrics *observability.Metrics) gin.Ha
 		c.Next()
 
 		status := statusFromWriter(c)
-		if status < http.StatusInternalServerError {
+		if cacheableIdempotencyStatus(status) {
 			store.Complete(recordKey, IdempotencyRecord{
 				RequestHash: requestHash,
 				Status:      status,
@@ -252,6 +252,10 @@ func replay(c *gin.Context, metrics *observability.Metrics, partnerID, routeName
 	metrics.IdempotencyReplays.WithLabelValues(partnerID, routeName).Inc()
 	c.Data(record.Status, record.Header.Get("Content-Type"), record.Body)
 	c.Abort()
+}
+
+func cacheableIdempotencyStatus(status int) bool {
+	return status < http.StatusInternalServerError && status != http.StatusRequestTimeout
 }
 
 type captureWriter struct {
