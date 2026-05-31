@@ -11,6 +11,7 @@ permissions:
 env:
   GO_VERSION: "1.26.3"
   NODE_VERSION: "22"
+  GOVULNCHECK_VERSION: "v1.3.0"
   REDOCLY_VERSION: "2.31.5"
 
 jobs:
@@ -47,7 +48,7 @@ jobs:
 
       - name: Security scan
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
           govulncheck ./...
 
       - name: OpenAPI lint

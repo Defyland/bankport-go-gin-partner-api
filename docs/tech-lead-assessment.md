@@ -40,7 +40,7 @@ next moves that would make the repository closer to production-ready.
 | Metrics and traces could use raw unmatched paths. | High-cardinality path labels make dashboards and tracing noisier under malformed traffic. | Route labels now fall back to `unmatched`, and account routes are tested for route-pattern labels. |
 | Webhook signatures used only the root signing key. | Endpoint-specific signing material is closer to production rotation and blast-radius expectations. | Signatures now derive per-endpoint material from the root signing key and endpoint secret ID. |
 | Observability had dashboards but no alert rules. | A reviewer should see how operators know when to act, not only where charts live. | Added Prometheus alert rules and an observability subsystem doc. |
-| Validation tooling was not fully pinned. | Unpinned local/CI lint tooling can drift and make evidence non-reproducible. | Added Go `toolchain go1.26.3`, CI version envs, and pinned Redocly CLI `2.31.5` in CI, Makefile, and docs. |
+| Validation tooling was not fully pinned. | Unpinned local/CI security and lint tooling can drift and make evidence non-reproducible. | Added Go `toolchain go1.26.3`, CI version envs, pinned govulncheck `v1.3.0`, and pinned Redocly CLI `2.31.5` in CI, Makefile, and docs. |
 | Spec-driven evidence was missing. | The new standard requires explicit acceptance criteria, plan, and verification report before claiming readiness. | Added `docs/spec-driven/` with readiness spec, plan, and report. |
 
 ## What I Would Prioritize Next
