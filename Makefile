@@ -1,5 +1,6 @@
 GO ?= go
 GOFMT ?= gofmt
+REDOCLY ?= npx --yes @redocly/cli@2.31.5
 
 .PHONY: fmt test test-race bench run docker-build openapi-lint
 
@@ -22,4 +23,4 @@ docker-build:
 	docker build -t bankport-go-gin-partner-api:local .
 
 openapi-lint:
-	npx @redocly/cli lint openapi.yaml
+	$(REDOCLY) lint openapi.yaml

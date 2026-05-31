@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+env:
+  GO_VERSION: "1.26.3"
+  NODE_VERSION: "22"
+  REDOCLY_VERSION: "2.31.5"
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -16,12 +21,12 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.26.3"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Check formatting
         run: test -z "$(gofmt -l cmd internal)"
@@ -46,7 +51,7 @@ jobs:
           govulncheck ./...
 
       - name: OpenAPI lint
-        run: npx @redocly/cli lint openapi.yaml
+        run: npx --yes @redocly/cli@${REDOCLY_VERSION} lint openapi.yaml
 
       - name: Compose config
         run: docker compose config

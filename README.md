@@ -159,6 +159,12 @@ verification report, see:
 
 ## 16. How to run locally
 
+Required toolchain:
+
+- Go 1.26.3, declared in `go.mod` through the `toolchain` directive
+- Node.js 22 for OpenAPI lint through Redocly CLI
+- Docker with Compose for container validation
+
 With Go:
 
 ```bash
@@ -196,7 +202,7 @@ curl -H "Authorization: Bearer bp_sandbox_full_access_key" \
 go test ./...
 go test -race ./...
 go vet ./...
-npx @redocly/cli lint openapi.yaml
+npx --yes @redocly/cli@2.31.5 lint openapi.yaml
 docker compose config
 ```
 
