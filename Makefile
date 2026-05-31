@@ -4,10 +4,13 @@ GOVULNCHECK_VERSION ?= v1.3.0
 GOVULNCHECK ?= $(GO) run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 REDOCLY ?= npx --yes @redocly/cli@2.31.5
 
-.PHONY: fmt test test-race bench run security docker-build openapi-lint
+.PHONY: fmt build test test-race bench run security docker-build openapi-lint
 
 fmt:
 	$(GOFMT) -w cmd internal
+
+build:
+	$(GO) build ./cmd/bankport-api ./cmd/bankportctl
 
 test:
 	$(GO) test ./...

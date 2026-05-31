@@ -41,6 +41,48 @@ func TestHashAPIKeyUsesPepper(t *testing.T) {
 	}
 }
 
+func TestPartnerAppsDoNotExposeAPIKeyHashes(t *testing.T) {
+	cfg := config.Load()
+	repo := NewSeededRepository(cfg)
+
+	apps, err := repo.PartnerApps(context.Background())
+	if err != nil {
+		t.Fatalf("partner apps: %v", err)
+	}
+
+	if len(apps) != 3 {
+		t.Fatalf("expected three seeded developer apps, got %d", len(apps))
+	}
+	if apps[0].DeveloperAppID != "app_other_partner" {
+		t.Fatalf("expected apps sorted by developer app id, got %+v", apps)
+	}
+	for _, app := range apps {
+		if app.PartnerID == "" || app.DeveloperAppID == "" || len(app.Scopes) == 0 {
+			t.Fatalf("expected sanitized app metadata, got %+v", app)
+		}
+	}
+}
+
+func TestUsageReportCountsSandboxState(t *testing.T) {
+	cfg := config.Load()
+	repo := NewSeededRepository(cfg)
+
+	report, err := repo.UsageReport(context.Background())
+	if err != nil {
+		t.Fatalf("usage report: %v", err)
+	}
+
+	if report.PartnerCount != 2 {
+		t.Fatalf("expected two seeded partners, got %d", report.PartnerCount)
+	}
+	if report.DeveloperAppCount != 3 {
+		t.Fatalf("expected three seeded developer apps, got %d", report.DeveloperAppCount)
+	}
+	if report.AccountCount != 3 {
+		t.Fatalf("expected three seeded accounts, got %d", report.AccountCount)
+	}
+}
+
 func TestNewTokenFallsBackWhenRandomReaderFails(t *testing.T) {
 	original := randomRead
 	randomRead = func([]byte) (int, error) {

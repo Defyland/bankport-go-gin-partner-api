@@ -157,6 +157,7 @@ verification report, see:
 - `docs/spec-driven/implementation-plan.md`
 - `docs/spec-driven/verification-report.md`
 - `docs/runtime.md`
+- `docs/cli/distribution.md`
 
 ## 16. How to run locally
 
@@ -170,6 +171,14 @@ With Go:
 
 ```bash
 go run ./cmd/bankport-api
+```
+
+Local sandbox CLI:
+
+```bash
+go run ./cmd/bankportctl apps list
+go run ./cmd/bankportctl rate-limits inspect
+go run ./cmd/bankportctl usage report --format json
 ```
 
 With Docker Compose, when the Docker daemon is running:

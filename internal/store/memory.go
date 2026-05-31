@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -135,6 +136,82 @@ func (r *Repository) AuthenticateAPIKey(apiKey string) (domain.Partner, bool) {
 
 	partner, ok := r.partnersByAPIKeyHash[HashAPIKey(strings.TrimSpace(apiKey), r.apiKeyHashPepper)]
 	return partner, ok
+}
+
+func (r *Repository) PartnerApps(ctx context.Context) ([]domain.PartnerApp, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	apps := make([]domain.PartnerApp, 0, len(r.partnersByAPIKeyHash))
+	for _, partner := range r.partnersByAPIKeyHash {
+		apps = append(apps, domain.PartnerApp{
+			PartnerID:          partner.ID,
+			PartnerName:        partner.Name,
+			DeveloperAppID:     partner.DeveloperAppID,
+			Scopes:             sortedScopes(partner.Scopes),
+			RateLimitPerMinute: partner.RateLimitPerMinute,
+		})
+	}
+	sort.Slice(apps, func(i, j int) bool {
+		return apps[i].DeveloperAppID < apps[j].DeveloperAppID
+	})
+	return apps, nil
+}
+
+func (r *Repository) RateLimitPolicies(ctx context.Context) ([]domain.RateLimitPolicy, error) {
+	apps, err := r.PartnerApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	policies := make([]domain.RateLimitPolicy, 0, len(apps))
+	for _, app := range apps {
+		policies = append(policies, domain.RateLimitPolicy{
+			PartnerID:          app.PartnerID,
+			DeveloperAppID:     app.DeveloperAppID,
+			LimitPerMinute:     app.RateLimitPerMinute,
+			PartitionStrategy:  "partner_id + route_pattern + fixed_1m_window",
+			DistributedBacking: "in_memory_sandbox",
+		})
+	}
+	return policies, nil
+}
+
+func (r *Repository) UsageReport(ctx context.Context) (domain.UsageReport, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.UsageReport{}, err
+	}
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if err := ctx.Err(); err != nil {
+		return domain.UsageReport{}, err
+	}
+	partnerIDs := make(map[string]bool)
+	for _, partner := range r.partnersByAPIKeyHash {
+		partnerIDs[partner.ID] = true
+	}
+	return domain.UsageReport{
+		GeneratedAt:          time.Now().UTC(),
+		PartnerCount:         len(partnerIDs),
+		DeveloperAppCount:    len(r.partnersByAPIKeyHash),
+		AccountCount:         len(r.accounts),
+		PixTransferCount:     len(r.pixTransfers),
+		PayoutCount:          len(r.payouts),
+		RefundCount:          len(r.refunds),
+		EventCount:           len(r.events),
+		WebhookEndpointCount: len(r.webhookEndpoints),
+		WebhookDeliveryCount: len(r.webhookDeliveries),
+		AuditEntryCount:      len(r.auditEntries),
+	}, nil
 }
 
 func (r *Repository) GetAccount(ctx context.Context, partnerID, accountID string) (domain.Account, error) {
@@ -512,6 +589,17 @@ func scopeSet(scopes ...string) map[string]bool {
 		set[scope] = true
 	}
 	return set
+}
+
+func sortedScopes(scopes map[string]bool) []string {
+	result := make([]string, 0, len(scopes))
+	for scope, enabled := range scopes {
+		if enabled {
+			result = append(result, scope)
+		}
+	}
+	sort.Strings(result)
+	return result
 }
 
 func newID(prefix string) string {

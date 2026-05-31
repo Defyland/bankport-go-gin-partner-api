@@ -53,6 +53,36 @@ func (p Partner) HasScope(scope string) bool {
 	return p.Scopes[scope]
 }
 
+type PartnerApp struct {
+	PartnerID          string   `json:"partner_id"`
+	PartnerName        string   `json:"partner_name"`
+	DeveloperAppID     string   `json:"developer_app_id"`
+	Scopes             []string `json:"scopes"`
+	RateLimitPerMinute int      `json:"rate_limit_per_minute"`
+}
+
+type RateLimitPolicy struct {
+	PartnerID          string `json:"partner_id"`
+	DeveloperAppID     string `json:"developer_app_id"`
+	LimitPerMinute     int    `json:"limit_per_minute"`
+	PartitionStrategy  string `json:"partition_strategy"`
+	DistributedBacking string `json:"distributed_backing"`
+}
+
+type UsageReport struct {
+	GeneratedAt          time.Time `json:"generated_at"`
+	PartnerCount         int       `json:"partner_count"`
+	DeveloperAppCount    int       `json:"developer_app_count"`
+	AccountCount         int       `json:"account_count"`
+	PixTransferCount     int       `json:"pix_transfer_count"`
+	PayoutCount          int       `json:"payout_count"`
+	RefundCount          int       `json:"refund_count"`
+	EventCount           int       `json:"event_count"`
+	WebhookEndpointCount int       `json:"webhook_endpoint_count"`
+	WebhookDeliveryCount int       `json:"webhook_delivery_count"`
+	AuditEntryCount      int       `json:"audit_entry_count"`
+}
+
 type Account struct {
 	ID                  string    `json:"account_id"`
 	PartnerID           string    `json:"partner_id"`
