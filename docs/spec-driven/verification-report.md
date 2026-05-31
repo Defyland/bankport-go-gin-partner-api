@@ -3,9 +3,10 @@
 ## Summary
 
 Verification was rerun on 2026-05-31 after the tech-lead hardening pass for
-idempotency concurrency, production config validation, request body limits,
-context cancellation, low-cardinality route labels, endpoint-specific webhook
-signatures, and corrected verification evidence.
+idempotency concurrency, timeout non-cacheability, strict environment parsing,
+production config validation, request body limits, context cancellation,
+low-cardinality route labels, endpoint-specific webhook signatures, and
+corrected verification evidence.
 
 The current state passes Go tests, race/coverage, vet, vulnerability scan,
 OpenAPI lint, Docker Compose config validation, Docker image build, Compose API
@@ -19,7 +20,7 @@ and Prometheus runtime health checks, native benchmark, and binary build.
 | `/tmp/codex-go1.26.3/bin/gofmt -l cmd internal` | Passed, no files listed |
 | `/tmp/codex-go1.26.3/bin/go mod tidy -diff` | Passed, no diff |
 | `/tmp/codex-go1.26.3/bin/go test ./...` | Passed |
-| `/tmp/codex-go1.26.3/bin/go test -race -coverpkg=./... -coverprofile=/tmp/bankport-coverage.out ./...` | Passed, total coverage `75.8%` |
+| `/tmp/codex-go1.26.3/bin/go test -race -coverpkg=./... -coverprofile=/tmp/bankport-coverage.out ./...` | Passed, total coverage `78.1%` |
 | `/tmp/codex-go1.26.3/bin/go vet ./...` | Passed |
 | `PATH=/tmp/codex-go1.26.3/bin:/usr/bin:/bin:/usr/sbin:/sbin /tmp/codex-go-bin/govulncheck ./...` | Passed, 0 reachable vulnerabilities |
 | `npx @redocly/cli lint openapi.yaml` | Passed |
@@ -33,7 +34,7 @@ and Prometheus runtime health checks, native benchmark, and binary build.
 | `curl -fsS http://localhost:9090/-/ready` | Passed after Prometheus startup completed |
 | `curl -fsS 'http://localhost:9090/api/v1/query?query=up'` | Passed, Prometheus query endpoint responded |
 | `docker compose down` | Passed, removed local validation containers and network |
-| `/tmp/codex-go1.26.3/bin/go test -bench=. -benchmem ./internal/httpapi` | Passed, `BenchmarkGetBalanceRequest-10 93178 11706 ns/op 11593 B/op 95 allocs/op` |
+| `/tmp/codex-go1.26.3/bin/go test -bench=. -benchmem ./internal/httpapi` | Passed, `BenchmarkGetBalanceRequest-10 82540 13876 ns/op 11586 B/op 95 allocs/op` |
 | `/tmp/codex-go1.26.3/bin/go build -trimpath -o /tmp/bankport-partner-api ./cmd/api` | Passed, produced 20 MB binary |
 
 ## Passing Criteria
@@ -41,10 +42,10 @@ and Prometheus runtime health checks, native benchmark, and binary build.
 - Required docs structure exists, including `docs/spec-driven/`.
 - README points to the case study, assessment, and spec-driven evidence docs.
 - API contract is valid OpenAPI.
-- Auth, scopes, tenant isolation, idempotency replay/conflict/concurrency, rate
-  limiting, webhooks, audit, cumulative refund protection, request body limits,
-  production config validation, context cancellation, and cleanup behavior have
-  automated tests.
+- Auth, scopes, tenant isolation, idempotency replay/conflict/concurrency,
+  timeout non-cacheability, rate limiting, webhooks, audit, cumulative refund
+  protection, request body limits, strict config parsing, production config
+  validation, context cancellation, and cleanup behavior have automated tests.
 - Observability includes logs, metrics, traces, low-cardinality route labels,
   dashboard provisioning, alert rules, and runbooks.
 - CI covers format, tests, race/coverage, security scan, OpenAPI lint, Compose
