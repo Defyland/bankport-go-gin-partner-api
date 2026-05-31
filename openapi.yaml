@@ -171,6 +171,10 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/IdempotencyConflict"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "413":
+          $ref: "#/components/responses/RequestBodyTooLarge"
         "422":
           $ref: "#/components/responses/StandardError"
         "429":
@@ -204,6 +208,10 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/IdempotencyConflict"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "413":
+          $ref: "#/components/responses/RequestBodyTooLarge"
         "422":
           $ref: "#/components/responses/StandardError"
         "429":
@@ -237,6 +245,10 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/IdempotencyConflict"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "413":
+          $ref: "#/components/responses/RequestBodyTooLarge"
         "422":
           $ref: "#/components/responses/StandardError"
         "429":
@@ -331,7 +343,7 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      description: Unique key per financial write command and request body. Sandbox records expire after the configured `IDEMPOTENCY_TTL`, defaulting to 24 hours.
+      description: Unique key per financial write command and request body. Duplicate in-flight requests with the same method, route, key, and body wait and replay the original response in the same API process. Sandbox records expire after the configured `IDEMPOTENCY_TTL`, defaulting to 24 hours.
       schema:
         type: string
         minLength: 8
@@ -402,7 +414,7 @@ components:
                 request_id: req_123
                 correlation_id: corr_123
     IdempotencyConflict:
-      description: Idempotency key reused with a different request body.
+      description: Idempotency key reused with a different request body, or an original in-flight request failed before producing a replayable response.
       content:
         application/json:
           schema:
@@ -413,6 +425,43 @@ components:
                 error:
                   code: idempotency_conflict
                   message: The Idempotency-Key was already used with a different request body.
+                request_id: req_123
+                correlation_id: corr_123
+            original_failed:
+              value:
+                error:
+                  code: idempotency_original_failed
+                  message: The original request did not produce a replayable response; retry with the same key after the failure clears.
+                request_id: req_123
+                correlation_id: corr_123
+    RequestTimeout:
+      description: Request context timed out or was canceled before completion.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            idempotency_wait_timeout:
+              value:
+                error:
+                  code: idempotency_wait_timeout
+                  message: Timed out waiting for the original request using this Idempotency-Key.
+                request_id: req_123
+                correlation_id: corr_123
+    RequestBodyTooLarge:
+      description: Request body exceeds `MAX_REQUEST_BODY_BYTES`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            body_too_large:
+              value:
+                error:
+                  code: request_body_too_large
+                  message: Request body exceeds the configured maximum size.
+                  details:
+                    max_bytes: 1048576
                 request_id: req_123
                 correlation_id: corr_123
   schemas:

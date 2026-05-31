@@ -21,9 +21,10 @@
 | --- | --- |
 | Stolen API credential | peppered HMAC hashes, rotation workflows, and scoped access |
 | Overbroad partner access | API products, scopes, and partner resolution middleware |
-| Request replay | idempotency keys with request-hash comparison |
-| Rate-limit abuse | Redis-backed limits and explicit error envelope |
-| Webhook tampering | HMAC signatures and delivery-attempt auditing |
+| Request replay | idempotency keys with request-hash comparison, in-flight reservation, and wait-and-replay behavior |
+| Oversized request body | configured max body size before JSON parsing |
+| Rate-limit abuse | process-local limits in the sandbox, Redis-backed limits planned for multi-instance production, and explicit error envelope |
+| Webhook tampering | endpoint-specific HMAC signatures and delivery-attempt auditing |
 | Internal adapter timeout | timeout middleware, circuit-breaker-ready adapter boundaries, and correlation IDs |
 
 ## Residual risks
@@ -31,6 +32,8 @@
 - mTLS and full OAuth provider semantics are deferred; the first slice focuses on partner auth and policy enforcement.
 - Service mesh is deferred; middleware, idempotency, and observability are the current edge controls.
 - Real downstream integrations remain fake adapters until the public contract is stable.
+- In-flight idempotency reservation is process-local until the PostgreSQL/Redis
+  adapter phase introduces shared reservation semantics.
 
 ## Trust boundary decisions
 

@@ -135,9 +135,10 @@ The API exposes:
 ## 14. Security considerations
 
 Security controls include API-key hashing, scoped access, tenant ownership
-checks, idempotency request hashes, rate limiting, webhook HMAC signatures,
-HTTPS webhook validation, environment-based secrets, and audit entries. See
-`docs/security/`.
+checks, idempotency request hashes, in-flight idempotency reservation, request
+body limits, rate limiting, endpoint-specific webhook HMAC signatures, HTTPS
+webhook validation, production config validation, environment-based secrets,
+and audit entries. See `docs/security/`.
 
 ## 15. Trade-offs and decisions
 
@@ -178,6 +179,10 @@ bp_sandbox_readonly_key
 bp_sandbox_other_partner_key
 ```
 
+Production-shaped startup validation is enabled through `Config.Validate`.
+When `BANKPORT_ENV=production`, the API refuses to start with default peppers,
+default webhook signing keys, or sandbox API keys.
+
 Example:
 
 ```bash
@@ -198,15 +203,16 @@ docker compose config
 ## 18. Failure scenarios
 
 Documented and tested scenarios include invalid credentials, insufficient scope,
-foreign account access, missing idempotency key, idempotency conflict, invalid
-JSON, insufficient funds, invalid webhook URL, rate-limit spike, and webhook
-delivery backlog.
+foreign account access, missing idempotency key, concurrent idempotency replay,
+idempotency conflict, oversized bodies, invalid JSON, canceled write contexts,
+insufficient funds, invalid webhook URL, rate-limit spike, and webhook delivery
+backlog.
 
 ## 19. Roadmap
 
 Next engineering steps:
 
-- implement PostgreSQL repository and Redis-backed distributed limits
+- implement PostgreSQL repository and Redis-backed distributed limits/idempotency
 - add durable webhook worker with retries and dead-letter handling
 - run k6 benchmarks against Docker Compose and store measured p50/p95/p99
 - wire OpenTelemetry exporter to a collector

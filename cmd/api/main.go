@@ -18,6 +18,12 @@ import (
 
 func main() {
 	cfg := config.Load()
+	startupLogger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+	if err := cfg.Validate(); err != nil {
+		startupLogger.Error("bankport_api_invalid_config", "error", err)
+		os.Exit(1)
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))

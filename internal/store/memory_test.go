@@ -23,7 +23,7 @@ func TestCreatePixTransferDebitsOnlyPartnerOwnedAccount(t *testing.T) {
 		AmountCents:     100,
 		Currency:        "BRL",
 		PixKey:          "merchant@example.com",
-	}, "corr_test", func(domain.Event) string { return "signature" })
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 	if err != domain.ErrAccountNotFound {
 		t.Fatalf("expected tenant-isolated account not found, got %v", err)
 	}
@@ -38,6 +38,38 @@ func TestHashAPIKeyUsesPepper(t *testing.T) {
 	}
 	if first == HashAPIKey("different-key", "pepper-one") {
 		t.Fatal("expected different API keys to produce different hashes")
+	}
+}
+
+func TestCreatePixTransferHonorsCanceledContextBeforeMutation(t *testing.T) {
+	cfg := config.Load()
+	repo := NewSeededRepository(cfg)
+	partner, ok := repo.AuthenticateAPIKey(cfg.FullAccessAPIKey)
+	if !ok {
+		t.Fatal("expected seeded full access partner")
+	}
+	before, err := repo.GetAccount(context.Background(), partner.ID, "acct_sandbox_001")
+	if err != nil {
+		t.Fatalf("get account before transfer: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, _, err = repo.CreatePixTransfer(ctx, partner, domain.PixTransferRequest{
+		SourceAccountID: "acct_sandbox_001",
+		AmountCents:     1000,
+		Currency:        "BRL",
+		PixKey:          "merchant@example.com",
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected canceled context error, got %v", err)
+	}
+	after, err := repo.GetAccount(context.Background(), partner.ID, "acct_sandbox_001")
+	if err != nil {
+		t.Fatalf("get account after transfer: %v", err)
+	}
+	if after.AvailableBalanceCts != before.AvailableBalanceCts {
+		t.Fatalf("expected canceled request not to mutate balance, before %d after %d", before.AvailableBalanceCts, after.AvailableBalanceCts)
 	}
 }
 
@@ -61,7 +93,7 @@ func TestCreatePixTransferQueuesWebhookDelivery(t *testing.T) {
 		AmountCents:     1000,
 		Currency:        "BRL",
 		PixKey:          "merchant@example.com",
-	}, "corr_test", func(domain.Event) string { return "signature" })
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 	if err != nil {
 		t.Fatalf("create pix transfer: %v", err)
 	}
@@ -89,7 +121,7 @@ func TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount(t *testing.T) {
 		AmountCents:     2000,
 		Currency:        "BRL",
 		PixKey:          "merchant@example.com",
-	}, "corr_test", func(domain.Event) string { return "signature" })
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 	if err != nil {
 		t.Fatalf("create pix transfer: %v", err)
 	}
@@ -100,7 +132,7 @@ func TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount(t *testing.T) {
 		AmountCents:           1500,
 		Currency:              "BRL",
 		Reason:                "partial reversal",
-	}, "corr_test", func(domain.Event) string { return "signature" })
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 	if err != nil {
 		t.Fatalf("create first refund: %v", err)
 	}
@@ -111,7 +143,7 @@ func TestCreateRefundRejectsCumulativeRefundAboveOriginalAmount(t *testing.T) {
 		AmountCents:           600,
 		Currency:              "BRL",
 		Reason:                "duplicate reversal attempt",
-	}, "corr_test", func(domain.Event) string { return "signature" })
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 	if err != domain.ErrRefundExceedsOriginal {
 		t.Fatalf("expected cumulative refund guard, got %v", err)
 	}
@@ -136,7 +168,7 @@ func TestConcurrentPixTransfersDoNotOverspendAccount(t *testing.T) {
 				AmountCents:     1_000_000,
 				Currency:        "BRL",
 				PixKey:          "merchant@example.com",
-			}, "corr_test", func(domain.Event) string { return "signature" })
+			}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 			errs <- err
 		}()
 	}
@@ -181,7 +213,7 @@ func TestConcurrentRefundsDoNotExceedOriginalAmount(t *testing.T) {
 		AmountCents:     2000,
 		Currency:        "BRL",
 		PixKey:          "merchant@example.com",
-	}, "corr_test", func(domain.Event) string { return "signature" })
+	}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 	if err != nil {
 		t.Fatalf("create pix transfer: %v", err)
 	}
@@ -198,7 +230,7 @@ func TestConcurrentRefundsDoNotExceedOriginalAmount(t *testing.T) {
 				AmountCents:           1000,
 				Currency:              "BRL",
 				Reason:                "concurrent reversal",
-			}, "corr_test", func(domain.Event) string { return "signature" })
+			}, "corr_test", func(domain.Event, domain.WebhookEndpoint) string { return "signature" })
 			errs <- err
 		}()
 	}

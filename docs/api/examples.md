@@ -57,7 +57,11 @@ Idempotency-Replayed: true
 ```
 
 Changing the body with the same key returns `409 idempotency_conflict`.
+If a duplicate request arrives while the first request is still executing in the
+same API process, it waits for the original response and then replays it instead
+of executing the financial handler twice.
 
 Sandbox idempotency records expire after `IDEMPOTENCY_TTL`, which defaults to
 24 hours. The production adapter should persist the same expiry in PostgreSQL
-and use Redis only as a fast cache, not as the source of truth.
+and use Redis only as a fast cache plus shared reservation layer, not as the
+source of truth.

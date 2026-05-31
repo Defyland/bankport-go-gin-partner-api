@@ -9,8 +9,8 @@ domain metrics, traces, and runbook-linked alerts.
 | Signal | Evidence | Purpose |
 | --- | --- | --- |
 | Structured logs | `middleware.StructuredLogger` | Tie route, status, partner, developer app, request ID, and correlation ID. |
-| Metrics | `internal/observability/metrics.go` | Track HTTP, financial commands, webhooks, rate limits, idempotency replays, and conflicts. |
-| Traces | `middleware.Tracing` | Attach route, status, request ID, and correlation ID to OpenTelemetry spans. |
+| Metrics | `internal/observability/metrics.go` | Track HTTP, financial commands, webhooks, rate limits, idempotency replays, and conflicts with route-pattern labels. |
+| Traces | `middleware.Tracing` | Attach route pattern, status, request ID, and correlation ID to OpenTelemetry spans. |
 | Health | `/health/live` | Detect process availability. |
 | Readiness | `/health/ready` | Detect runtime dependency readiness boundary. |
 | Dashboard | `deployments/grafana/dashboards/bankport-partner-api.json` | Review throughput, p95 latency, and domain controls. |
@@ -23,6 +23,8 @@ domain metrics, traces, and runbook-linked alerts.
 - Did a financial command emit an event and queue webhook delivery evidence?
 - Is partner retry behavior causing idempotency conflicts?
 - Is the API protecting itself with 429 responses or failing with 5xx responses?
+- Are unmatched paths grouped as `unmatched` instead of creating high-cardinality
+  metrics or trace names?
 
 ## Known Gaps
 

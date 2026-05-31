@@ -14,8 +14,9 @@ match each other.
 | Spec-driven docs | `docs/spec-driven/senior-readiness-spec.md`, `docs/spec-driven/implementation-plan.md`, `docs/spec-driven/verification-report.md` |
 | Technical assessment | `docs/tech-lead-assessment.md`, `README.md` |
 | Domain correctness | `internal/store/memory.go`, `internal/store/memory_test.go`, `db/migrations/001_init.sql`, `docs/domain/invariants.md`, `docs/scalability.md`, `docs/engineering-case-study.md` |
-| Operational safeguards | `internal/httpapi/middleware/idempotency.go`, `internal/httpapi/middleware/idempotency_test.go`, `internal/httpapi/middleware/rate_limit.go`, `internal/httpapi/middleware/rate_limit_test.go`, `internal/config/config.go` |
+| Operational safeguards | `cmd/api/main.go`, `internal/config/config.go`, `internal/config/config_test.go`, `internal/httpapi/router.go`, `internal/httpapi/router_test.go`, `internal/httpapi/middleware/idempotency.go`, `internal/httpapi/middleware/idempotency_test.go`, `internal/httpapi/middleware/rate_limit.go`, `internal/httpapi/middleware/rate_limit_test.go`, `internal/httpapi/middleware/request.go`, `internal/httpapi/middleware/context.go` |
 | Observability | `docs/architecture/observability.md`, `deployments/prometheus/alerts.yml`, `deployments/prometheus/prometheus.yml`, `docker-compose.yml` |
+| Webhook signing | `internal/webhook/signer.go`, `internal/webhook/signer_test.go`, `internal/store/memory.go`, `internal/store/memory_test.go` |
 | API contract | `openapi.yaml`, `docs/api/examples.md`, `docs/api/error-format.md` |
 
 ## Acceptance Criteria Mapping
@@ -28,6 +29,12 @@ match each other.
 | Idempotency state does not grow forever. | Add configurable TTL and cleanup test. |
 | Rate-limit state does not grow forever. | Add expired-window pruning and cleanup test. |
 | Observability includes alerting evidence, not only dashboard screenshots. | Add Prometheus alert rules and observability doc. |
+| Concurrent requests with the same idempotency key cannot execute the financial handler twice. | Add in-flight idempotency reservation, wait-and-replay behavior, and a concurrent middleware regression test. |
+| Production mode fails closed when secrets or sandbox API keys are still defaults. | Add `Config.Validate`, startup validation, and production config tests. |
+| Oversized JSON bodies cannot exhaust memory before validation. | Add `MAX_REQUEST_BODY_BYTES`, `http.MaxBytesReader`, 413 error mapping, and API test coverage. |
+| Request cancellation is honored before financial mutations. | Check request context before repository reads/writes and test canceled Pix transfer behavior. |
+| Observability avoids path-parameter cardinality. | Use route patterns for metrics/traces and test account IDs are not emitted as route labels. |
+| Webhook signatures are endpoint-specific. | Derive endpoint signing material from the root signing key and endpoint secret ID; add regression coverage. |
 | Verification is auditable. | Record exact commands and results in `verification-report.md`. |
 
 ## Verification Commands
@@ -50,6 +57,9 @@ docker compose config
 
 - Docker daemon may be unavailable locally; CI still validates Docker build.
 - The in-memory repository proves contract and invariants but is not durable.
+- In-process idempotency single-flight prevents duplicate execution in this
+  sandbox; multi-instance production deployments must move the reservation to a
+  shared transactional store.
 - Prometheus alerts are present, but Alertmanager routing is not included.
 - Webhook delivery evidence is queued in memory; durable retry/DLQ worker is
   planned.
@@ -57,7 +67,7 @@ docker compose config
 ## Deferred Work
 
 - PostgreSQL repository adapter and migrations runner.
-- Redis-backed distributed rate limits and idempotency cache.
+- Redis-backed distributed rate limits and shared idempotency reservation/cache.
 - Durable webhook worker with retry queue, DLQ, replay endpoint, and queue-depth
   metric.
 - OpenTelemetry collector/exporter wiring in Compose.

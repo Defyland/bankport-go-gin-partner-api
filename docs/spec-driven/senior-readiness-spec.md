@@ -105,11 +105,14 @@ Compose validation, and Docker build validation in CI.
 | Tenant isolation and BOLA prevention are tested. | `TestTenantIsolationHidesForeignAccount`, `TestCreatePixTransferDebitsOnlyPartnerOwnedAccount` | Done | Cross-partner account access returns not found. |
 | API-key scope enforcement is tested. | `TestRejectsInsufficientScope` | Done | Read-only key cannot write Pix transfer. |
 | API-key hashes are protected by a secret pepper. | `internal/store/memory.go`, `docs/security/secrets.md` | Done | Sandbox uses HMAC-SHA256 with `API_KEY_HASH_PEPPER`; production rotation path is documented. |
-| Idempotency replay, conflict, and TTL cleanup are tested. | `TestIdempotentFinancialWriteReplaysCachedResponse`, `TestIdempotencyConflict`, `TestIdempotencyStoreExpiresRecords` | Done | TTL defaults to 24h and is configurable. |
+| Idempotency replay, conflict, TTL cleanup, and same-key concurrency are tested. | `TestIdempotentFinancialWriteReplaysCachedResponse`, `TestIdempotencyConflict`, `TestIdempotencyStoreExpiresRecords`, `TestIdempotencyConcurrentSameKeyRunsHandlerOnce` | Done | In-process financial writes reserve the idempotency key before handler execution, so duplicate concurrent requests wait and replay instead of double-executing. |
 | Rate limiting and cleanup are tested. | `TestRateLimitExceeded`, `TestRateLimiterPrunesExpiredWindows` | Done | Current implementation is in-memory fixed window; Redis is planned. |
-| Webhook signing and delivery evidence are tested. | `TestWebhookRegistrationAndDeliveryQueue`, `TestSignerCreatesVersionedHMACSignature` | Done | Durable worker and DLQ are planned. |
-| Observability has metrics, logs, traces, dashboard, alerts, and runbooks. | `internal/observability/metrics.go`, `docs/architecture/observability.md`, `deployments/grafana/dashboards/bankport-partner-api.json`, `deployments/prometheus/alerts.yml`, `docs/runbooks/` | Done | Trace exporter and Alertmanager routing are planned. |
-| Benchmarks include method and measured result. | `benchmarks/baseline.md`, `benchmarks/results/2026-05-30-go-benchmark.txt`, `benchmarks/k6-*.js` | Done | k6 scripts are present; Docker daemon was unavailable for local k6 run. |
+| Production configuration fails closed for unsafe defaults. | `Config.Validate`, `TestValidateRejectsProductionDefaults`, `TestValidateAcceptsProductionSecretsAndKeys`, `cmd/api/main.go` | Done | Production mode rejects default peppers, signing keys, and sandbox API keys before the server starts. |
+| Request body size is bounded. | `RequestBodyLimit`, `TestRejectsOversizedFinancialBody`, `MAX_REQUEST_BODY_BYTES` | Done | Oversized financial writes return 413 before JSON binding or domain mutation. |
+| Request cancellation is honored before mutation. | `internal/store/memory.go`, `TestCreatePixTransferHonorsCanceledContextBeforeMutation` | Done | Repository methods check context before reads/writes and before financial state changes. |
+| Webhook signing and delivery evidence are tested. | `TestWebhookRegistrationAndDeliveryQueue`, `TestSignerCreatesVersionedHMACSignature`, `TestSignerDerivesEndpointSpecificSignatures` | Done | Signatures derive endpoint-specific material from the root signing key; durable worker and DLQ are planned. |
+| Observability has metrics, logs, traces, dashboard, alerts, and runbooks. | `internal/observability/metrics.go`, `docs/architecture/observability.md`, `deployments/grafana/dashboards/bankport-partner-api.json`, `deployments/prometheus/alerts.yml`, `docs/runbooks/`, `TestMetricsUseRoutePatternForAccountIDs` | Done | Metrics and traces use route patterns to avoid account-id cardinality; trace exporter and Alertmanager routing are planned. |
+| Benchmarks include method and measured result. | `benchmarks/baseline.md`, `benchmarks/results/2026-05-30-go-benchmark.txt`, `benchmarks/k6-*.js`, `docs/spec-driven/verification-report.md` | Done | Native benchmark and Docker runtime validation are recorded; k6 scripts remain available for load profiles. |
 | CI covers format, tests, coverage, security, OpenAPI, Compose, and Docker build. | `.github/workflows/ci.yml` | Done | Docker build validation is in CI. |
 | Production persistence is implemented. | `db/migrations/001_init.sql`, `docs/product/roadmap.md` | Planned | PostgreSQL repository is intentionally deferred; current runtime is sandbox in memory. |
 | Distributed rate limiting is implemented. | `docs/architecture/deployment-view.md`, `docs/scalability.md` | Planned | Redis adapter is planned after API contract stabilization. |
@@ -119,7 +122,7 @@ Compose validation, and Docker build validation in CI.
 
 - Real Pix, payout, or banking provider integration.
 - PostgreSQL repository implementation.
-- Redis-backed distributed rate limiter and idempotency cache.
+- Redis-backed distributed rate limiter and shared idempotency reservation/cache.
 - Durable webhook worker, retry queues, and dead-letter queues.
 - OAuth client credentials and mTLS enforcement.
 - Kubernetes manifests and multi-region active-active writes.

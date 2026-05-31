@@ -41,6 +41,15 @@ func Timeout(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
+func RequestBodyLimit(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if maxBytes > 0 && c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		}
+		c.Next()
+	}
+}
+
 func StructuredLogger(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		started := time.Now()
@@ -77,10 +86,11 @@ func Metrics(metrics *observability.Metrics) gin.HandlerFunc {
 func Tracing(serviceName string) gin.HandlerFunc {
 	tracer := otel.Tracer(serviceName)
 	return func(c *gin.Context) {
-		ctx, span := tracer.Start(c.Request.Context(), c.Request.Method+" "+c.Request.URL.Path)
+		ctx, span := tracer.Start(c.Request.Context(), c.Request.Method+" "+route(c))
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 		status := statusFromWriter(c)
+		span.SetName(c.Request.Method + " " + route(c))
 		span.SetAttributes(
 			attribute.String("http.method", c.Request.Method),
 			attribute.String("http.route", route(c)),

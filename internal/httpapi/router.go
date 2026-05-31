@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -55,6 +56,7 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	router.Use(
 		gin.Recovery(),
 		middleware.RequestIdentity(),
+		middleware.RequestBodyLimit(deps.Config.MaxRequestBodyBytes),
 		middleware.Timeout(deps.Config.RequestTimeout),
 		middleware.Tracing(deps.Config.ServiceName),
 		middleware.StructuredLogger(logger),
@@ -132,7 +134,7 @@ func (s *Server) createPixTransfer(c *gin.Context) {
 		return
 	}
 
-	transfer, queuedDeliveries, err := s.repository.CreatePixTransfer(c.Request.Context(), partner, request, middleware.CorrelationID(c), s.signer.SignEvent)
+	transfer, queuedDeliveries, err := s.repository.CreatePixTransfer(c.Request.Context(), partner, request, middleware.CorrelationID(c), s.signer.SignEventForEndpoint)
 	if err != nil {
 		s.metrics.FinancialCommands.WithLabelValues("pix_transfer", "rejected").Inc()
 		s.audit(c, partner, "pix.transfer.create", request.SourceAccountID, "rejected", store.ErrorCode(err))
@@ -157,7 +159,7 @@ func (s *Server) createPayout(c *gin.Context) {
 		return
 	}
 
-	payout, queuedDeliveries, err := s.repository.CreatePayout(c.Request.Context(), partner, request, middleware.CorrelationID(c), s.signer.SignEvent)
+	payout, queuedDeliveries, err := s.repository.CreatePayout(c.Request.Context(), partner, request, middleware.CorrelationID(c), s.signer.SignEventForEndpoint)
 	if err != nil {
 		s.metrics.FinancialCommands.WithLabelValues("payout", "rejected").Inc()
 		s.audit(c, partner, "payout.create", request.AccountID, "rejected", store.ErrorCode(err))
@@ -182,7 +184,7 @@ func (s *Server) createRefund(c *gin.Context) {
 		return
 	}
 
-	refund, queuedDeliveries, err := s.repository.CreateRefund(c.Request.Context(), partner, request, middleware.CorrelationID(c), s.signer.SignEvent)
+	refund, queuedDeliveries, err := s.repository.CreateRefund(c.Request.Context(), partner, request, middleware.CorrelationID(c), s.signer.SignEventForEndpoint)
 	if err != nil {
 		s.metrics.FinancialCommands.WithLabelValues("refund", "rejected").Inc()
 		s.audit(c, partner, "refund.create", request.AccountID, "rejected", store.ErrorCode(err))
@@ -238,6 +240,10 @@ func (s *Server) respondDomainError(c *gin.Context, err error) {
 		middleware.Abort(c, http.StatusNotFound, "original_transaction_not_found", "The original transaction was not found for this partner and account.", nil)
 	case errors.Is(err, domain.ErrRefundExceedsOriginal):
 		middleware.Abort(c, http.StatusUnprocessableEntity, "refund_exceeds_original", "The refund amount exceeds the original transaction amount.", nil)
+	case errors.Is(err, context.DeadlineExceeded):
+		middleware.Abort(c, http.StatusGatewayTimeout, "request_timeout", "The request exceeded the configured timeout.", nil)
+	case errors.Is(err, context.Canceled):
+		middleware.Abort(c, http.StatusRequestTimeout, "request_canceled", "The request was canceled before it could complete.", nil)
 	default:
 		s.logger.Error("domain_error_unmapped", "error", err, "request_id", middleware.RequestID(c))
 		middleware.Abort(c, http.StatusInternalServerError, "internal_error", "An internal error occurred.", nil)

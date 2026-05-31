@@ -48,6 +48,32 @@ func TestRequiresAuthentication(t *testing.T) {
 	}
 }
 
+func TestRejectsOversizedFinancialBody(t *testing.T) {
+	cfg := testConfig(120)
+	cfg.MaxRequestBodyBytes = 32
+	repo := store.NewSeededRepository(cfg)
+	router := NewRouter(Dependencies{
+		Config:     cfg,
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Repository: repo,
+		Metrics:    observability.NewMetrics(cfg.ServiceName),
+	})
+
+	response := performWithHeaders(router, http.MethodPost, "/v1/pix/transfers", cfg.FullAccessAPIKey, `{
+		"source_account_id": "acct_sandbox_001",
+		"amount_cents": 100,
+		"currency": "BRL",
+		"pix_key": "merchant@example.com"
+	}`, map[string]string{"Idempotency-Key": "oversized-body"})
+
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413, got %d: %s", response.Code, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "request_body_too_large") {
+		t.Fatalf("expected body size error, got %s", response.Body.String())
+	}
+}
+
 func TestRejectsInsufficientScope(t *testing.T) {
 	router, _, cfg := newTestRouter(t, 120)
 
@@ -76,6 +102,24 @@ func TestTenantIsolationHidesForeignAccount(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "account_not_found") {
 		t.Fatalf("expected tenant-isolated not found error, got %s", response.Body.String())
+	}
+}
+
+func TestMetricsUseRoutePatternForAccountIDs(t *testing.T) {
+	router, _, cfg := newTestRouter(t, 120)
+
+	response := perform(router, http.MethodGet, "/v1/accounts/acct_sandbox_001/balance", cfg.FullAccessAPIKey, "")
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected balance 200, got %d: %s", response.Code, response.Body.String())
+	}
+	metrics := perform(router, http.MethodGet, "/metrics", "", "")
+	metricsBody := metrics.Body.String()
+
+	if !strings.Contains(metricsBody, `route="/v1/accounts/:account_id/balance"`) {
+		t.Fatalf("expected metrics to use route pattern, got %s", metricsBody)
+	}
+	if strings.Contains(metricsBody, `route="/v1/accounts/acct_sandbox_001/balance"`) {
+		t.Fatalf("expected metrics to avoid account-id cardinality, got %s", metricsBody)
 	}
 }
 

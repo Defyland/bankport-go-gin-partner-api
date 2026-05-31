@@ -92,7 +92,7 @@ func route(c *gin.Context) string {
 	if fullPath := c.FullPath(); fullPath != "" {
 		return fullPath
 	}
-	return c.Request.URL.Path
+	return "unmatched"
 }
 
 func statusFromWriter(c *gin.Context) int {

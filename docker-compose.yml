@@ -8,6 +8,7 @@ services:
       LOG_LEVEL: info
       RATE_LIMIT_PER_MINUTE: "120"
       IDEMPOTENCY_TTL: 24h
+      MAX_REQUEST_BODY_BYTES: "1048576"
       API_KEY_HASH_PEPPER: dev-only-api-key-hash-pepper-change-me
       WEBHOOK_SIGNING_KEY: dev-only-webhook-signing-key-change-me
     ports:

@@ -28,7 +28,13 @@ next moves that would make the repository closer to production-ready.
 | --- | --- | --- |
 | Refund validation only checked each refund against the original amount. | Multiple partial refunds could exceed the original Pix transfer, a real financial correctness bug. | Added cumulative refund tracking, production SQL guard documentation, and regression test. |
 | Idempotency cache had no expiry behavior. | A long-lived API process could grow memory without bound and replay stale financial responses longer than intended. | Added configurable `IDEMPOTENCY_TTL`, expiry cleanup, and test coverage. |
+| Concurrent requests could reuse the same idempotency key before the first response was cached. | Two identical in-flight financial writes could execute the handler twice in a single API process. | Added in-flight idempotency reservation with wait-and-replay behavior plus a concurrent middleware regression test. |
 | Rate-limit windows had no cleanup path. | Many partners/routes over time could leave stale limiter keys in memory. | Added expired-window pruning and test coverage. |
+| Production config accepted sandbox defaults. | A production-shaped API must fail closed when secrets, peppers, or sandbox API keys are not replaced. | Added `Config.Validate`, startup validation, and tests that reject production defaults. |
+| Request bodies were read without a configured size cap. | An attacker could force memory pressure before JSON validation. | Added `MAX_REQUEST_BODY_BYTES`, `http.MaxBytesReader`, 413 error mapping, and API coverage. |
+| Repository methods ignored canceled request contexts. | Timeouts should stop work before financial state changes, not only decorate the request. | Added context checks before reads/writes and a canceled-write regression test. |
+| Metrics and traces could use raw unmatched paths. | High-cardinality path labels make dashboards and tracing noisier under malformed traffic. | Route labels now fall back to `unmatched`, and account routes are tested for route-pattern labels. |
+| Webhook signatures used only the root signing key. | Endpoint-specific signing material is closer to production rotation and blast-radius expectations. | Signatures now derive per-endpoint material from the root signing key and endpoint secret ID. |
 | Observability had dashboards but no alert rules. | A reviewer should see how operators know when to act, not only where charts live. | Added Prometheus alert rules and an observability subsystem doc. |
 | Spec-driven evidence was missing. | The new standard requires explicit acceptance criteria, plan, and verification report before claiming readiness. | Added `docs/spec-driven/` with readiness spec, plan, and report. |
 
@@ -37,8 +43,8 @@ next moves that would make the repository closer to production-ready.
 1. Implement the PostgreSQL repository with transaction tests around account
    debits, idempotency unique constraints, outbox insert, and cumulative refund
    guarded updates.
-2. Add Redis-backed distributed rate limiting and idempotency cache reads while
-   keeping PostgreSQL as the source of truth.
+2. Add Redis-backed distributed rate limiting and shared idempotency
+   reservation/cache reads while keeping PostgreSQL as the source of truth.
 3. Add a durable webhook worker with retry queue, dead-letter queue, replay
    endpoint, endpoint-level retry budget, and queue-depth metrics.
 4. Wire OpenTelemetry exporter and Prometheus Alertmanager in Compose.

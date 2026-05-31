@@ -131,10 +131,17 @@ func (r *Repository) AuthenticateAPIKey(apiKey string) (domain.Partner, bool) {
 	return partner, ok
 }
 
-func (r *Repository) GetAccount(_ context.Context, partnerID, accountID string) (domain.Account, error) {
+func (r *Repository) GetAccount(ctx context.Context, partnerID, accountID string) (domain.Account, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Account{}, err
+	}
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
+	if err := ctx.Err(); err != nil {
+		return domain.Account{}, err
+	}
 	account, ok := r.accounts[accountID]
 	if !ok || account.PartnerID != partnerID {
 		return domain.Account{}, domain.ErrAccountNotFound
@@ -142,10 +149,17 @@ func (r *Repository) GetAccount(_ context.Context, partnerID, accountID string) 
 	return account, nil
 }
 
-func (r *Repository) ListStatements(_ context.Context, partnerID, accountID string) ([]domain.StatementEntry, error) {
+func (r *Repository) ListStatements(ctx context.Context, partnerID, accountID string) ([]domain.StatementEntry, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	account, ok := r.accounts[accountID]
 	if !ok || account.PartnerID != partnerID {
 		return nil, domain.ErrAccountNotFound
@@ -155,6 +169,9 @@ func (r *Repository) ListStatements(_ context.Context, partnerID, accountID stri
 }
 
 func (r *Repository) CreatePixTransfer(ctx context.Context, partner domain.Partner, request domain.PixTransferRequest, correlationID string, sign SignEventFunc) (domain.PixTransfer, int, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.PixTransfer{}, 0, err
+	}
 	if err := request.Validate(); err != nil {
 		return domain.PixTransfer{}, 0, err
 	}
@@ -162,6 +179,9 @@ func (r *Repository) CreatePixTransfer(ctx context.Context, partner domain.Partn
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if err := ctx.Err(); err != nil {
+		return domain.PixTransfer{}, 0, err
+	}
 	account, ok := r.accounts[request.SourceAccountID]
 	if !ok || account.PartnerID != partner.ID {
 		return domain.PixTransfer{}, 0, domain.ErrAccountNotFound
@@ -209,6 +229,9 @@ func (r *Repository) CreatePixTransfer(ctx context.Context, partner domain.Partn
 }
 
 func (r *Repository) CreatePayout(ctx context.Context, partner domain.Partner, request domain.PayoutRequest, correlationID string, sign SignEventFunc) (domain.Payout, int, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Payout{}, 0, err
+	}
 	if err := request.Validate(); err != nil {
 		return domain.Payout{}, 0, err
 	}
@@ -216,6 +239,9 @@ func (r *Repository) CreatePayout(ctx context.Context, partner domain.Partner, r
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if err := ctx.Err(); err != nil {
+		return domain.Payout{}, 0, err
+	}
 	account, ok := r.accounts[request.AccountID]
 	if !ok || account.PartnerID != partner.ID {
 		return domain.Payout{}, 0, domain.ErrAccountNotFound
@@ -265,6 +291,9 @@ func (r *Repository) CreatePayout(ctx context.Context, partner domain.Partner, r
 }
 
 func (r *Repository) CreateRefund(ctx context.Context, partner domain.Partner, request domain.RefundRequest, correlationID string, sign SignEventFunc) (domain.Refund, int, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Refund{}, 0, err
+	}
 	if err := request.Validate(); err != nil {
 		return domain.Refund{}, 0, err
 	}
@@ -272,6 +301,9 @@ func (r *Repository) CreateRefund(ctx context.Context, partner domain.Partner, r
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if err := ctx.Err(); err != nil {
+		return domain.Refund{}, 0, err
+	}
 	account, ok := r.accounts[request.AccountID]
 	if !ok || account.PartnerID != partner.ID {
 		return domain.Refund{}, 0, domain.ErrAccountNotFound
@@ -327,7 +359,10 @@ func (r *Repository) CreateRefund(ctx context.Context, partner domain.Partner, r
 	return refund, deliveries, nil
 }
 
-func (r *Repository) RegisterWebhookEndpoint(_ context.Context, partner domain.Partner, request domain.WebhookEndpointRequest) (domain.WebhookEndpoint, error) {
+func (r *Repository) RegisterWebhookEndpoint(ctx context.Context, partner domain.Partner, request domain.WebhookEndpointRequest) (domain.WebhookEndpoint, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.WebhookEndpoint{}, err
+	}
 	if err := request.Validate(); err != nil {
 		return domain.WebhookEndpoint{}, err
 	}
@@ -335,6 +370,9 @@ func (r *Repository) RegisterWebhookEndpoint(_ context.Context, partner domain.P
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if err := ctx.Err(); err != nil {
+		return domain.WebhookEndpoint{}, err
+	}
 	endpoint := domain.WebhookEndpoint{
 		ID:          newID("wh"),
 		PartnerID:   partner.ID,
@@ -426,7 +464,7 @@ func (r *Repository) queueDeliveriesLocked(ctx context.Context, partnerID string
 			EventID:      event.ID,
 			PartnerID:    partnerID,
 			Status:       "queued",
-			Signature:    sign(event),
+			Signature:    sign(event, endpoint),
 			NextAttempt:  time.Now().UTC(),
 			AttemptCount: 0,
 			CreatedAt:    time.Now().UTC(),
@@ -482,7 +520,7 @@ func newToken(size int) string {
 	return hex.EncodeToString(bytes)
 }
 
-type SignEventFunc func(event domain.Event) string
+type SignEventFunc func(event domain.Event, endpoint domain.WebhookEndpoint) string
 
 func ErrorCode(err error) string {
 	switch {
