@@ -2,7 +2,7 @@ module github.com/allanflavio/bankport-go-gin-partner-api
 
 go 1.26
 
-toolchain go1.26.3
+toolchain go1.26.4
 
 require (
 	github.com/gin-gonic/gin v1.10.1

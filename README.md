@@ -173,11 +173,27 @@ verification report, see:
 - `docs/kubernetes.md`
 - `docs/cli/distribution.md`
 
-## 16. How to run locally
+## 16. How to evaluate in 5 minutes
+
+Run the reviewer path first:
+
+```bash
+make verify
+```
+
+That proves formatting, module-graph drift, `go vet`, race-tested coverage,
+binary builds, `govulncheck`, and OpenAPI lint. If Docker is available, run the
+container-oriented checks too:
+
+```bash
+make ci
+```
+
+## 17. How to run locally
 
 Required toolchain:
 
-- Go 1.26.3, declared in `go.mod` through the `toolchain` directive
+- Go 1.26.4, declared in `go.mod` through the `toolchain` directive
 - Node.js 22 for OpenAPI lint through Redocly CLI
 - Docker with Compose for container validation
 
@@ -220,18 +236,25 @@ curl -H "Authorization: Bearer bp_sandbox_full_access_key" \
   http://localhost:8080/v1/accounts/acct_sandbox_001/balance
 ```
 
-## 17. How to run tests
+## 18. How to run tests
+
+```bash
+make verify
+make ci
+```
+
+Core commands remain available directly:
 
 ```bash
 go test ./...
-go test -race ./...
+go test -race -coverpkg=./... -coverprofile=coverage.out ./...
 go vet ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
 npx --yes @redocly/cli@2.31.5 lint openapi.yaml
 docker compose config
 ```
 
-## 18. Failure scenarios
+## 19. Failure scenarios
 
 Documented and tested scenarios include invalid credentials, insufficient scope,
 foreign account access, missing idempotency key, concurrent idempotency replay,
@@ -239,7 +262,7 @@ idempotency conflict, oversized bodies, invalid JSON, canceled write contexts,
 insufficient funds, invalid webhook URL, rate-limit spike, and webhook delivery
 backlog.
 
-## 19. Roadmap
+## 20. Roadmap
 
 Next engineering steps:
 
