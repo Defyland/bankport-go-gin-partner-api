@@ -172,6 +172,7 @@ verification report, see:
 - `docs/production-readiness.md`
 - `docs/kubernetes.md`
 - `docs/cli/distribution.md`
+- `docs/deployment/railway.md`
 
 ## 16. How to evaluate in 5 minutes
 
@@ -216,6 +217,9 @@ With Docker Compose, when the Docker daemon is running:
 ```bash
 docker compose up --build
 ```
+
+For a public demo deployment path, see `docs/deployment/railway.md`. Railway
+uses the existing Dockerfile and `/health/ready` activation check.
 
 Sandbox keys:
 
