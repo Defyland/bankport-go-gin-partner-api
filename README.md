@@ -277,3 +277,11 @@ Next engineering steps:
 - add partner API-key rotation workflow and replay endpoints
 
 See `docs/engineering-case-study.md` for the full senior engineering narrative.
+
+## 21. License
+
+This repository is published under the MIT License. See
+[LICENSE.txt](LICENSE.txt).
+
+That keeps the partner API contract, operational notes, and verification
+surface reusable for study and internal experimentation.
